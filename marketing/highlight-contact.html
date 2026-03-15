@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lumi Tea - Contact</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .story-container {
+            width: 1080px;
+            height: 1920px;
+            background: linear-gradient(180deg, #F8F6F3 0%, #EDE8E1 100%);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Decorative elements */
+        .leaf-pattern {
+            position: absolute;
+            opacity: 0.06;
+        }
+        
+        .leaf-1 {
+            top: 3%;
+            right: -5%;
+            width: 280px;
+            transform: rotate(-30deg);
+        }
+        
+        .leaf-2 {
+            bottom: 15%;
+            left: -8%;
+            width: 220px;
+            transform: rotate(45deg);
+        }
+        
+        /* Header */
+        .header {
+            padding: 80px 60px 40px;
+            text-align: center;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 52px;
+            font-weight: 600;
+            color: #4A6741;
+            letter-spacing: 3px;
+            margin-bottom: 10px;
+        }
+        
+        .tagline {
+            font-size: 24px;
+            color: #8B7355;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+        }
+        
+        /* Title */
+        .title-section {
+            text-align: center;
+            padding: 0 60px 50px;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .title {
+            font-family: 'Playfair Display', serif;
+            font-size: 72px;
+            font-weight: 700;
+            color: #2C3E28;
+            margin-bottom: 15px;
+        }
+        
+        .subtitle {
+            font-size: 32px;
+            color: #5D4E37;
+            font-weight: 300;
+        }
+        
+        /* Contact Cards */
+        .contacts-section {
+            flex: 1;
+            padding: 0 70px;
+            display: flex;
+            flex-direction: column;
+            gap: 35px;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .contact-card {
+            background: white;
+            border-radius: 30px;
+            padding: 40px 45px;
+            box-shadow: 0 15px 50px rgba(74, 103, 65, 0.12);
+            display: flex;
+            align-items: center;
+            gap: 35px;
+        }
+        
+        .contact-icon {
+            width: 110px;
+            height: 110px;
+            border-radius: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 55px;
+            flex-shrink: 0;
+        }
+        
+        .contact-icon.kakao {
+            background: #FEE500;
+        }
+        
+        .contact-icon.insta {
+            background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+        }
+        
+        .contact-icon.email {
+            background: linear-gradient(135deg, #4A6741 0%, #6B8E5A 100%);
+        }
+        
+        .contact-icon.phone {
+            background: linear-gradient(135deg, #8B7355 0%, #A68B6A 100%);
+        }
+        
+        .contact-info {
+            flex: 1;
+        }
+        
+        .contact-name {
+            font-family: 'Playfair Display', serif;
+            font-size: 38px;
+            font-weight: 600;
+            color: #2C3E28;
+            margin-bottom: 8px;
+        }
+        
+        .contact-value {
+            font-size: 30px;
+            color: #5D4E37;
+            font-weight: 500;
+        }
+        
+        .contact-note {
+            font-size: 22px;
+            color: #8B7355;
+            margin-top: 8px;
+        }
+        
+        /* Hours Section */
+        .hours-section {
+            background: linear-gradient(135deg, #4A6741 0%, #6B8E5A 100%);
+            margin: 40px 70px;
+            border-radius: 30px;
+            padding: 45px 50px;
+            text-align: center;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .hours-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 38px;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 20px;
+        }
+        
+        .hours-time {
+            font-size: 42px;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 10px;
+        }
+        
+        .hours-days {
+            font-size: 28px;
+            color: rgba(255,255,255,0.85);
+        }
+        
+        /* Footer */
+        .footer {
+            padding: 40px 60px 80px;
+            text-align: center;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .footer-text {
+            font-size: 26px;
+            color: #5D4E37;
+            margin-bottom: 15px;
+        }
+        
+        .footer-brand {
+            font-family: 'Playfair Display', serif;
+            font-size: 38px;
+            font-weight: 600;
+            color: #4A6741;
+        }
+        
+        /* Decorative line */
+        .deco-line {
+            width: 120px;
+            height: 4px;
+            background: linear-gradient(90deg, #4A6741, #8B7355);
+            margin: 30px auto;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="story-container">
+        <!-- Decorative leaves -->
+        <svg class="leaf-pattern leaf-1" viewBox="0 0 100 100">
+            <path d="M50 10 Q70 30 80 50 Q70 70 50 90 Q30 70 20 50 Q30 30 50 10" fill="#4A6741"/>
+        </svg>
+        <svg class="leaf-pattern leaf-2" viewBox="0 0 100 100">
+            <path d="M50 10 Q70 30 80 50 Q70 70 50 90 Q30 70 20 50 Q30 30 50 10" fill="#4A6741"/>
+        </svg>
+        
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">LUMI</div>
+            <div class="tagline">Premium Korean Tea</div>
+        </div>
+        
+        <!-- Title -->
+        <div class="title-section">
+            <h1 class="title">Contact Us</h1>
+            <p class="subtitle">We're Here to Help</p>
+            <div class="deco-line"></div>
+        </div>
+        
+        <!-- Contact Cards -->
+        <div class="contacts-section">
+            <div class="contact-card">
+                <div class="contact-icon kakao">💬</div>
+                <div class="contact-info">
+                    <div class="contact-name">KakaoTalk</div>
+                    <div class="contact-value">@lumi_tea</div>
+                    <div class="contact-note">Fastest response</div>
+                </div>
+            </div>
+            
+            <div class="contact-card">
+                <div class="contact-icon insta">📸</div>
+                <div class="contact-info">
+                    <div class="contact-name">Instagram</div>
+                    <div class="contact-value">@lumi.tea.kr</div>
+                    <div class="contact-note">DM us anytime</div>
+                </div>
+            </div>
+            
+            <div class="contact-card">
+                <div class="contact-icon email">✉️</div>
+                <div class="contact-info">
+                    <div class="contact-name">Email</div>
+                    <div class="contact-value">hello@lumitea.kr</div>
+                    <div class="contact-note">24h response time</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Hours -->
+        <div class="hours-section">
+            <div class="hours-title">Business Hours</div>
+            <div class="hours-time">9:00 AM - 6:00 PM</div>
+            <div class="hours-days">Monday - Saturday</div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            <p class="footer-text">We reply within 2 hours</p>
+            <div class="footer-brand">Lumi Tea</div>
+        </div>
+    </div>
+</body>
+</html>

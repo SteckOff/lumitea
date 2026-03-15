@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lumi Tea - How to Order</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .story-container {
+            width: 1080px;
+            height: 1920px;
+            background: linear-gradient(180deg, #F8F6F3 0%, #EDE8E1 100%);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Decorative elements */
+        .leaf-pattern {
+            position: absolute;
+            opacity: 0.06;
+        }
+        
+        .leaf-1 {
+            top: 3%;
+            right: -5%;
+            width: 280px;
+            transform: rotate(-30deg);
+        }
+        
+        .leaf-2 {
+            bottom: 10%;
+            left: -8%;
+            width: 220px;
+            transform: rotate(45deg);
+        }
+        
+        /* Header */
+        .header {
+            padding: 70px 60px 30px;
+            text-align: center;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 48px;
+            font-weight: 600;
+            color: #4A6741;
+            letter-spacing: 3px;
+            margin-bottom: 10px;
+        }
+        
+        .tagline {
+            font-size: 22px;
+            color: #8B7355;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+        }
+        
+        /* Title */
+        .title-section {
+            text-align: center;
+            padding: 0 60px 40px;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .title {
+            font-family: 'Playfair Display', serif;
+            font-size: 68px;
+            font-weight: 700;
+            color: #2C3E28;
+            margin-bottom: 12px;
+        }
+        
+        .subtitle {
+            font-size: 30px;
+            color: #5D4E37;
+            font-weight: 300;
+        }
+        
+        /* Steps */
+        .steps-section {
+            flex: 1;
+            padding: 0 70px;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .step-card {
+            background: white;
+            border-radius: 28px;
+            padding: 35px 40px;
+            box-shadow: 0 12px 40px rgba(74, 103, 65, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 30px;
+        }
+        
+        .step-number {
+            width: 90px;
+            height: 90px;
+            background: linear-gradient(135deg, #4A6741 0%, #6B8E5A 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Playfair Display', serif;
+            font-size: 42px;
+            font-weight: 700;
+            color: white;
+            flex-shrink: 0;
+        }
+        
+        .step-content {
+            flex: 1;
+        }
+        
+        .step-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 36px;
+            font-weight: 600;
+            color: #2C3E28;
+            margin-bottom: 8px;
+        }
+        
+        .step-desc {
+            font-size: 26px;
+            color: #5D4E37;
+            line-height: 1.4;
+        }
+        
+        /* Discount Banner */
+        .discount-banner {
+            background: linear-gradient(135deg, #8B7355 0%, #A68B6A 100%);
+            margin: 35px 70px;
+            border-radius: 28px;
+            padding: 40px 50px;
+            text-align: center;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .discount-badge {
+            display: inline-block;
+            background: white;
+            color: #8B7355;
+            font-size: 28px;
+            font-weight: 700;
+            padding: 12px 35px;
+            border-radius: 50px;
+            margin-bottom: 20px;
+        }
+        
+        .discount-text {
+            font-family: 'Playfair Display', serif;
+            font-size: 40px;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 10px;
+        }
+        
+        .discount-sub {
+            font-size: 26px;
+            color: rgba(255,255,255,0.9);
+        }
+        
+        /* CTA */
+        .cta-section {
+            padding: 30px 70px 70px;
+            text-align: center;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #4A6741 0%, #6B8E5A 100%);
+            color: white;
+            font-family: 'Playfair Display', serif;
+            font-size: 38px;
+            font-weight: 600;
+            padding: 30px 70px;
+            border-radius: 60px;
+            box-shadow: 0 15px 40px rgba(74, 103, 65, 0.35);
+        }
+        
+        .cta-note {
+            font-size: 24px;
+            color: #8B7355;
+            margin-top: 25px;
+        }
+        
+        /* Decorative line */
+        .deco-line {
+            width: 120px;
+            height: 4px;
+            background: linear-gradient(90deg, #4A6741, #8B7355);
+            margin: 25px auto;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="story-container">
+        <!-- Decorative leaves -->
+        <svg class="leaf-pattern leaf-1" viewBox="0 0 100 100">
+            <path d="M50 10 Q70 30 80 50 Q70 70 50 90 Q30 70 20 50 Q30 30 50 10" fill="#4A6741"/>
+        </svg>
+        <svg class="leaf-pattern leaf-2" viewBox="0 0 100 100">
+            <path d="M50 10 Q70 30 80 50 Q70 70 50 90 Q30 70 20 50 Q30 30 50 10" fill="#4A6741"/>
+        </svg>
+        
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">LUMI</div>
+            <div class="tagline">Premium Korean Tea</div>
+        </div>
+        
+        <!-- Title -->
+        <div class="title-section">
+            <h1 class="title">How to Order</h1>
+            <p class="subtitle">Simple & Easy Steps</p>
+            <div class="deco-line"></div>
+        </div>
+        
+        <!-- Steps -->
+        <div class="steps-section">
+            <div class="step-card">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <div class="step-title">Choose Your Tea</div>
+                    <div class="step-desc">Browse our collection & pick favorites</div>
+                </div>
+            </div>
+            
+            <div class="step-card">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <div class="step-title">Contact Us</div>
+                    <div class="step-desc">DM on Instagram or KakaoTalk</div>
+                </div>
+            </div>
+            
+            <div class="step-card">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <div class="step-title">Confirm Order</div>
+                    <div class="step-desc">We'll confirm availability & total</div>
+                </div>
+            </div>
+            
+            <div class="step-card">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <div class="step-title">Payment</div>
+                    <div class="step-desc">Bank transfer or cash on delivery</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Discount Banner -->
+        <div class="discount-banner">
+            <div class="discount-badge">SPECIAL OFFER</div>
+            <div class="discount-text">10% OFF</div>
+            <div class="discount-sub">When ordering via Instagram/KakaoTalk</div>
+        </div>
+        
+        <!-- CTA -->
+        <div class="cta-section">
+            <div class="cta-button">Order Now</div>
+            <p class="cta-note">Free shipping on orders over ₩50,000</p>
+        </div>
+    </div>
+</body>
+</html>

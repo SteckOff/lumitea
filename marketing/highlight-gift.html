@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gift Sets - Lumi Tea</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #fff9f0 0%, #fff5e6 100%);
+            width: 1080px;
+            height: 1920px;
+            overflow: hidden;
+        }
+        .container {
+            width: 100%;
+            height: 100%;
+            padding: 60px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        .logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 64px;
+            color: #ff9800;
+            margin-bottom: 10px;
+        }
+        .title {
+            font-size: 56px;
+            color: #333;
+            font-weight: 600;
+        }
+        .subtitle {
+            font-size: 32px;
+            color: #888;
+            margin-top: 15px;
+        }
+        .gift-list {
+            display: flex;
+            flex-direction: column;
+            gap: 35px;
+        }
+        .gift-item {
+            background: white;
+            border-radius: 35px;
+            padding: 45px;
+            box-shadow: 0 10px 40px rgba(255, 152, 0, 0.15);
+            border: 2px solid rgba(255, 152, 0, 0.2);
+        }
+        .gift-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 25px;
+        }
+        .gift-name-section {
+            display: flex;
+            align-items: center;
+            gap: 25px;
+        }
+        .gift-icon {
+            font-size: 70px;
+        }
+        .gift-name {
+            font-size: 40px;
+            font-weight: 600;
+            color: #333;
+        }
+        .gift-name-ko {
+            font-size: 28px;
+            color: #888;
+        }
+        .gift-price {
+            text-align: right;
+        }
+        .price-current {
+            font-size: 48px;
+            font-weight: 700;
+            color: #ff9800;
+        }
+        .price-original {
+            font-size: 28px;
+            color: #bbb;
+            text-decoration: line-through;
+        }
+        .gift-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .gift-item-tag {
+            background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+            padding: 15px 25px;
+            border-radius: 25px;
+            font-size: 26px;
+            color: #e65100;
+        }
+        .gift-item-tag::before {
+            content: '✓';
+            margin-right: 10px;
+            color: #4caf50;
+            font-weight: bold;
+        }
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            background: linear-gradient(135deg, #ff9800, #ffc107);
+            padding: 40px;
+            border-radius: 30px;
+            color: white;
+        }
+        .footer-text {
+            font-size: 36px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">Lumi Tea</div>
+            <div class="title">Gift Sets</div>
+            <div class="subtitle">선물 세트</div>
+        </div>
+        <div class="gift-list">
+            <div class="gift-item">
+                <div class="gift-header">
+                    <div class="gift-name-section">
+                        <div class="gift-icon">🎁</div>
+                        <div>
+                            <div class="gift-name">Premium Collection</div>
+                            <div class="gift-name-ko">프리미엄 컬렉션</div>
+                        </div>
+                    </div>
+                    <div class="gift-price">
+                        <div class="price-current">₩45,000</div>
+                        <div class="price-original">₩55,000</div>
+                    </div>
+                </div>
+                <div class="gift-items">
+                    <span class="gift-item-tag">3 premium teas</span>
+                    <span class="gift-item-tag">Gift box</span>
+                    <span class="gift-item-tag">Tea infuser</span>
+                    <span class="gift-item-tag">Brewing guide</span>
+                </div>
+            </div>
+            <div class="gift-item">
+                <div class="gift-header">
+                    <div class="gift-name-section">
+                        <div class="gift-icon">💝</div>
+                        <div>
+                            <div class="gift-name">Tea Lover's Set</div>
+                            <div class="gift-name-ko">차 애호가 세트</div>
+                        </div>
+                    </div>
+                    <div class="gift-price">
+                        <div class="price-current">₩32,000</div>
+                        <div class="price-original">₩40,000</div>
+                    </div>
+                </div>
+                <div class="gift-items">
+                    <span class="gift-item-tag">2 signature teas</span>
+                    <span class="gift-item-tag">Glass teacup</span>
+                    <span class="gift-item-tag">Tea scoop</span>
+                </div>
+            </div>
+            <div class="gift-item">
+                <div class="gift-header">
+                    <div class="gift-name-section">
+                        <div class="gift-icon">👑</div>
+                        <div>
+                            <div class="gift-name">Luxury Gift Box</div>
+                            <div class="gift-name-ko">럭셔리 선물 상자</div>
+                        </div>
+                    </div>
+                    <div class="gift-price">
+                        <div class="price-current">₩68,000</div>
+                        <div class="price-original">₩85,000</div>
+                    </div>
+                </div>
+                <div class="gift-items">
+                    <span class="gift-item-tag">4 rare teas</span>
+                    <span class="gift-item-tag">Handcrafted teapot</span>
+                    <span class="gift-item-tag">Premium gift box</span>
+                    <span class="gift-item-tag">Personalized card</span>
+                </div>
+            </div>
+        </div>
+        <div class="footer">
+            <div class="footer-text">🎀 Perfect for any occasion</div>
+        </div>
+    </div>
+</body>
+</html>
