@@ -1,343 +1,73 @@
-# Lumi Tea - GitHub Repository
+# React + TypeScript + Vite
 
-This is the complete source code for Lumi Tea e-commerce website.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-## Repository Structure
+Currently, two official plugins are available:
 
-```
-lumi-tea-github/
-├── .github/
-│   └── workflows/
-│       └── deploy.yml          # GitHub Actions auto-deploy
-├── backend/
-│   ├── server.js               # Express.js backend
-│   └── package.json            # Backend dependencies
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── Register.tsx    # Registration with email verification
-│   │   │   └── CheckoutPayment.tsx  # Payment component
-│   │   ├── contexts/
-│   │   │   └── AuthContext.tsx # Auth state management
-│   │   ├── pages/
-│   │   │   └── AdminPanel.tsx  # Admin dashboard
-│   │   ├── api.ts              # API service
-│   │   ├── App.tsx             # Main app component
-│   │   ├── main.tsx            # Entry point
-│   │   └── index.css           # Global styles
-│   ├── index.html              # HTML template
-│   ├── package.json            # Frontend dependencies
-│   ├── vite.config.ts          # Vite config
-│   ├── tsconfig.json           # TypeScript config
-│   ├── tailwind.config.js      # Tailwind CSS config
-│   └── postcss.config.js       # PostCSS config
-├── deploy.sh                   # Server deployment script
-└── README.md                   # This file
-```
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-## Quick Start
+## React Compiler
 
-### 1. Clone Repository
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-```bash
-git clone https://github.com/YOUR_USERNAME/lumitea.git
-cd lumitea
-```
+## Expanding the ESLint configuration
 
-### 2. Setup Backend
+If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
 
-```bash
-cd backend
-npm install
-npm start
-```
-
-Backend will run on http://localhost:3001
-
-### 3. Setup Frontend (Development)
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Frontend will run on http://localhost:5173
-
-## GitHub Setup
-
-### Step 1: Create GitHub Repository
-
-1. Go to https://github.com/new
-2. Repository name: `lumitea`
-3. Make it private (recommended)
-4. Click "Create repository"
-
-### Step 2: Push Code to GitHub
-
-```bash
-# Initialize git (if not done)
-git init
-
-# Add all files
-git add .
-
-# Commit
-git commit -m "Initial commit"
-
-# Add remote
-git remote add origin https://github.com/YOUR_USERNAME/lumitea.git
-
-# Push
-git push -u origin main
-```
-
-### Step 3: Add GitHub Secrets (for auto-deploy)
-
-1. Go to repository Settings → Secrets and variables → Actions
-2. Click "New repository secret"
-3. Add these secrets:
-
-| Secret Name | Value |
-|-------------|-------|
-| `SERVER_HOST` | 158.247.225.4 |
-| `SERVER_USER` | root |
-| `SERVER_PASSWORD` | Your server password |
-
-## Server Setup
-
-### Step 1: Initial Server Setup
-
-SSH into your server:
-
-```bash
-ssh root@158.247.225.4
-```
-
-### Step 2: Clone Repository on Server
-
-```bash
-cd /var/www
-rm -rf lumitea  # Remove old if exists
-
-# Clone your repository
-git clone https://github.com/YOUR_USERNAME/lumitea.git
-
-# Or use SSH (recommended for private repos)
-git clone git@github.com:YOUR_USERNAME/lumitea.git
-```
-
-### Step 3: Run Installation
-
-```bash
-cd lumitea
-chmod +x deploy.sh
-./deploy.sh
-```
-
-Or run the full install script:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/YOUR_USERNAME/lumitea/main/install.sh | sudo bash
-```
-
-### Step 4: Setup GitHub Webhook (Optional - for instant deploy)
-
-On your server:
-
-```bash
-# Install webhook
-apt-get install webhook
-
-# Create webhook config
-cat > /etc/webhook.conf << 'EOF'
-[
+```js
+export default defineConfig([
+  globalIgnores(['dist']),
   {
-    "id": "deploy-lumitea",
-    "execute-command": "/var/www/lumitea/deploy.sh",
-    "command-working-directory": "/var/www/lumitea",
-    "response-message": "Deploying...",
-    "trigger-rule": {
-      "and": [
-        {
-          "match": {
-            "type": "payload-hmac-sha256",
-            "secret": "YOUR_WEBHOOK_SECRET",
-            "parameter": {
-              "source": "header",
-              "name": "X-Hub-Signature-256"
-            }
-          }
-        }
-      ]
-    }
-  }
-]
-EOF
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
 
-# Start webhook
-webhook -hooks /etc/webhook.conf -port 9000 &
+      // Remove tseslint.configs.recommended and replace with this
+      tseslint.configs.recommendedTypeChecked,
+      // Alternatively, use this for stricter rules
+      tseslint.configs.strictTypeChecked,
+      // Optionally, add this for stylistic rules
+      tseslint.configs.stylisticTypeChecked,
+
+      // Other configs...
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
 ```
 
-Then add webhook in GitHub:
-1. Go to repository Settings → Webhooks
-2. Add webhook
-3. Payload URL: `http://158.247.225.4:9000/hooks/deploy-lumitea`
-4. Content type: `application/json`
-5. Secret: Your webhook secret
-6. Events: Just the push event
+You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
 
-## How Auto-Deploy Works
+```js
+// eslint.config.js
+import reactX from 'eslint-plugin-react-x'
+import reactDom from 'eslint-plugin-react-dom'
 
-### Option 1: GitHub Actions (Recommended)
-
-When you push to `main` branch:
-
-1. GitHub Actions automatically builds frontend
-2. Deploys frontend files to server via SCP
-3. SSH into server and restarts backend
-4. Takes ~2-3 minutes
-
-### Option 2: Manual Deploy
-
-On your server:
-
-```bash
-cd /var/www/lumitea
-./deploy.sh
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
+      // Enable lint rules for React
+      reactX.configs['recommended-typescript'],
+      // Enable lint rules for React DOM
+      reactDom.configs.recommended,
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
 ```
-
-### Option 3: GitHub Webhook (Instant)
-
-When you push to GitHub:
-
-1. GitHub sends webhook to your server
-2. Server runs deploy.sh automatically
-3. Instant deployment
-
-## Development Workflow
-
-### Making Changes
-
-1. **Local development:**
-```bash
-cd frontend
-npm run dev
-# Make changes, test locally
-```
-
-2. **Commit and push:**
-```bash
-git add .
-git commit -m "Your changes"
-git push origin main
-```
-
-3. **Auto-deploy happens automatically!**
-
-### Updating Backend Only
-
-```bash
-# SSH to server
-ssh root@158.247.225.4
-
-# Pull latest
-cd /var/www/lumitea
-git pull
-
-# Restart backend
-pm2 restart lumitea-backend
-```
-
-### Updating Frontend Only
-
-```bash
-# SSH to server
-ssh root@158.247.225.4
-
-# Build and deploy
-cd /var/www/lumitea/frontend-src
-npm install
-npm run build
-cp -r dist/* /var/www/lumitea/frontend/dist/
-```
-
-## Environment Variables
-
-### Frontend (.env file)
-
-```
-VITE_API_URL=https://lumitea.kr/api
-```
-
-### Backend (environment variables)
-
-```bash
-export NODE_ENV=production
-export PORT=3001
-export JWT_SECRET=your-secret-key
-```
-
-## Troubleshooting
-
-### GitHub Actions failing
-
-Check secrets are set correctly:
-- Go to Settings → Secrets and variables → Actions
-- Verify SERVER_HOST, SERVER_USER, SERVER_PASSWORD
-
-### Server not updating
-
-```bash
-# Check if git pull works
-ssh root@158.247.225.4
-cd /var/www/lumitea
-git status
-git pull
-```
-
-### Backend not restarting
-
-```bash
-ssh root@158.247.225.4
-pm2 logs lumitea-backend
-pm2 restart lumitea-backend
-```
-
-### Frontend not updating
-
-```bash
-ssh root@158.247.225.4
-nginx -t
-systemctl reload nginx
-```
-
-## Security Notes
-
-1. **Never commit secrets to GitHub!**
-2. Use GitHub Secrets for sensitive data
-3. Keep your server password secure
-4. Use SSH keys instead of password (recommended)
-5. Enable 2FA on GitHub
-
-## Useful Commands
-
-```bash
-# Check deployment status
-ssh root@158.247.225.4 "pm2 status"
-
-# View logs
-ssh root@158.247.225.4 "pm2 logs lumitea-backend --lines 50"
-
-# Manual deploy
-ssh root@158.247.225.4 "cd /var/www/lumitea && ./deploy.sh"
-
-# Check git status on server
-ssh root@158.247.225.4 "cd /var/www/lumitea && git status"
-```
-
-## Support
-
-- Email: lumitea.kr@gmail.com
-- KakaoTalk: @_lumi__tea_
-- Instagram: @lumi.tea.kr
