@@ -1,73 +1,194 @@
-# React + TypeScript + Vite
+# 🍵 LumiTea — Modern Wellness E-commerce Platform
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**A direct-to-consumer wellness brand expanding into the South Korean market — full-stack storefront, admin dashboard, and order pipeline built from the ground up.**
 
-Currently, two official plugins are available:
+![Status](https://img.shields.io/badge/status-active%20development-success)
+![Stack](https://img.shields.io/badge/stack-React%20%2B%20TS%20%2B%20Node-blue)
+![License](https://img.shields.io/badge/license-Proprietary-lightgrey)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
 
-## React Compiler
+## ✨ About
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+LumiTea is a curated loose-leaf tea brand built for the Korean wellness market. This repository contains the customer-facing storefront, the admin dashboard, and the order management backend — designed, built, and maintained in-house by the founding team.
 
-## Expanding the ESLint configuration
+I'm a **co-founder and lead developer** on the project.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 🏗️ Tech Stack
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+| Layer | Technologies |
+|-------|--------------|
+| **Frontend** | React 18 · TypeScript · Vite · Tailwind CSS · shadcn/ui |
+| **Backend** | Node.js · Express · REST API |
+| **Tooling** | ESLint · GitHub Actions · custom deploy scripts |
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## ⚡ Features
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+- 🛍 **Product catalog** with categories, filters, and curated collections
+- 🛒 **Cart & checkout flow** with order summary and validation
+- 🔐 **Admin dashboard** with drag-and-drop image uploads and product CRUD
+- 📦 **Order pipeline** — `pending → confirmed → shipped`
+- 📱 **Mobile-first responsive design**
+- 🌐 **Built for the Korean market** (i18n-ready)
+
+## 🚀 Quick start
+
+```bash
+git clone https://github.com/SteckOff/lumitea.git
+cd lumitea
+npm install
+cp .env.example .env   # configure your environment
+npm run dev            # frontend on http://localhost:5173
+npm run server         # backend on http://localhost:3001
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 📁 Project structure
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+cd ~/Code/lumitea
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+############################################
+# 1. Удаляем дубль lumi-tea
+############################################
+gh repo delete SteckOff/lumi-tea --yes
+
+############################################
+# 2. Описание + topics для lumitea
+############################################
+gh repo edit SteckOff/lumitea \
+  --description "🍵 Modern wellness e-commerce — React + TypeScript + Node.js. A co-founded brand expanding to the South Korean market." \
+  --add-topic react --add-topic typescript --add-topic nodejs \
+  --add-topic express --add-topic tailwindcss --add-topic vite \
+  --add-topic ecommerce --add-topic shadcn-ui --add-topic full-stack
+
+############################################
+# 3. Перезаписываем README на нормальный
+############################################
+cat > README.md << 'LUMITEA_README_EOF'
+# 🍵 LumiTea — Modern Wellness E-commerce Platform
+
+**A direct-to-consumer wellness brand expanding into the South Korean market — full-stack storefront, admin dashboard, and order pipeline built from the ground up.**
+
+![Status](https://img.shields.io/badge/status-active%20development-success)
+![Stack](https://img.shields.io/badge/stack-React%20%2B%20TS%20%2B%20Node-blue)
+![License](https://img.shields.io/badge/license-Proprietary-lightgrey)
+
+---
+
+## ✨ About
+
+LumiTea is a curated loose-leaf tea brand built for the Korean wellness market. This repository contains the customer-facing storefront, the admin dashboard, and the order management backend — designed, built, and maintained in-house by the founding team.
+
+I'm a **co-founder and lead developer** on the project.
+
+## 🏗️ Tech Stack
+
+| Layer | Technologies |
+|-------|--------------|
+| **Frontend** | React 18 · TypeScript · Vite · Tailwind CSS · shadcn/ui |
+| **Backend** | Node.js · Express · REST API |
+| **Tooling** | ESLint · GitHub Actions · custom deploy scripts |
+
+## ⚡ Features
+
+- 🛍 **Product catalog** with categories, filters, and curated collections
+- 🛒 **Cart & checkout flow** with order summary and validation
+- 🔐 **Admin dashboard** with drag-and-drop image uploads and product CRUD
+- 📦 **Order pipeline** — `pending → confirmed → shipped`
+- 📱 **Mobile-first responsive design**
+- 🌐 **Built for the Korean market** (i18n-ready)
+
+## 🚀 Quick start
+
+```bash
+git clone https://github.com/SteckOff/lumitea.git
+cd lumitea
+npm install
+cp .env.example .env   # configure your environment
+npm run dev            # frontend on http://localhost:5173
+npm run server         # backend on http://localhost:3001
 ```
+
+## 📁 Project structure
+cd ~/Code/lumitea
+
+############################################
+# 1. Удаляем дубль lumi-tea
+############################################
+gh repo delete SteckOff/lumi-tea --yes
+
+############################################
+# 2. Описание + topics для lumitea
+############################################
+gh repo edit SteckOff/lumitea \
+  --description "🍵 Modern wellness e-commerce — React + TypeScript + Node.js. A co-founded brand expanding to the South Korean market." \
+  --add-topic react --add-topic typescript --add-topic nodejs \
+  --add-topic express --add-topic tailwindcss --add-topic vite \
+  --add-topic ecommerce --add-topic shadcn-ui --add-topic full-stack
+
+############################################
+# 3. Перезаписываем README на нормальный
+############################################
+cat > README.md << 'LUMITEA_README_EOF'
+# 🍵 LumiTea — Modern Wellness E-commerce Platform
+
+**A direct-to-consumer wellness brand expanding into the South Korean market — full-stack storefront, admin dashboard, and order pipeline built from the ground up.**
+
+![Status](https://img.shields.io/badge/status-active%20development-success)
+![Stack](https://img.shields.io/badge/stack-React%20%2B%20TS%20%2B%20Node-blue)
+![License](https://img.shields.io/badge/license-Proprietary-lightgrey)
+
+---
+
+## ✨ About
+
+LumiTea is a curated loose-leaf tea brand built for the Korean wellness market. This repository contains the customer-facing storefront, the admin dashboard, and the order management backend — designed, built, and maintained in-house by the founding team.
+
+I'm a **co-founder and lead developer** on the project.
+
+## 🏗️ Tech Stack
+
+| Layer | Technologies |
+|-------|--------------|
+| **Frontend** | React 18 · TypeScript · Vite · Tailwind CSS · shadcn/ui |
+| **Backend** | Node.js · Express · REST API |
+| **Tooling** | ESLint · GitHub Actions · custom deploy scripts |
+
+## ⚡ Features
+
+- 🛍 **Product catalog** with categories, filters, and curated collections
+- 🛒 **Cart & checkout flow** with order summary and validation
+- 🔐 **Admin dashboard** with drag-and-drop image uploads and product CRUD
+- 📦 **Order pipeline** — `pending → confirmed → shipped`
+- 📱 **Mobile-first responsive design**
+- 🌐 **Built for the Korean market** (i18n-ready)
+
+## 🚀 Quick start
+
+```bash
+git clone https://github.com/SteckOff/lumitea.git
+cd lumitea
+npm install
+cp .env.example .env   # configure your environment
+npm run dev            # frontend on http://localhost:5173
+npm run server         # backend on http://localhost:3001
+```
+
+## 📁 Project structure
+
+## 🛣️ Roadmap
+
+- [x] Storefront MVP
+- [x] Admin panel with image upload
+- [x] Order status pipeline
+- [ ] Toss Payments / PortOne integration
+- [ ] Korean-language i18n pass
+- [ ] Customer order-tracking dashboard
+
+## 📬 Contact
+
+Built by **Grigorii Archakov** — full-stack developer based in Almaty, Kazakhstan.  
+Open for freelance & contract work: **archakovgrigorii@gmail.com**
+
+---
+
+⭐ Star this repo if you find the architecture useful.
