@@ -1,5 +1,4 @@
 import { createClient } from '@supabase/supabase-js';
-import type { Database } from './database.types';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -12,7 +11,11 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   );
 }
 
-export const supabase = createClient<Database>(
+// The Database generic is intentionally omitted here — the hand-written types in
+// database.types.ts don't fully satisfy supabase-js v2's GenericSchema constraints.
+// Run `supabase gen types typescript --project-id <ref>` once the project is live
+// and restore the generic then.
+export const supabase = createClient(
   SUPABASE_URL ?? 'http://localhost:54321',
   SUPABASE_ANON_KEY ?? 'public-anon-key',
   {
