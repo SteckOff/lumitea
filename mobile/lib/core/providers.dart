@@ -243,6 +243,28 @@ final myOrdersProvider = FutureProvider.autoDispose<List<Order>>((ref) async {
 });
 
 // -----------------------------------------------------------------------------
+// Orders — single order by id
+// -----------------------------------------------------------------------------
+final orderByIdProvider = FutureProvider.autoDispose.family<Order?, String>((ref, id) async {
+  final s = ref.read(supabaseProvider);
+  final data = await s.from('orders').select().eq('id', id).maybeSingle();
+  return data == null ? null : Order.fromJson(data as Map<String, dynamic>);
+});
+
+// All orders — admin only
+final allOrdersProvider = FutureProvider.autoDispose<List<Order>>((ref) async {
+  final auth = ref.watch(authProvider);
+  if (!auth.isAdmin) return [];
+  final s = ref.read(supabaseProvider);
+  final data = await s
+      .from('orders')
+      .select()
+      .order('created_at', ascending: false)
+      .limit(200);
+  return (data as List).map((j) => Order.fromJson(j as Map<String, dynamic>)).toList();
+});
+
+// -----------------------------------------------------------------------------
 // Promotions (live feed)
 // -----------------------------------------------------------------------------
 final promotionsProvider = FutureProvider.autoDispose<List<Promotion>>((ref) async {

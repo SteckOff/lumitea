@@ -79,7 +79,7 @@ class CatalogShellHome extends ConsumerWidget {
           ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -94,6 +94,43 @@ class CatalogShellHome extends ConsumerWidget {
                       color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
+                  const SizedBox(height: 16),
+                  // Gift Sets banner
+                  InkWell(
+                    onTap: () => context.push('/gift-sets'),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFE91E63), Color(0xFFF48FB1)],
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.card_giftcard, color: Colors.white, size: 22),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              locale == 'ko'
+                                  ? '선물 세트 보기 →'
+                                  : locale == 'ru'
+                                      ? 'Подарочные наборы →'
+                                      : 'Shop Gift Sets →',
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 15),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                 ],
               ),
             ),

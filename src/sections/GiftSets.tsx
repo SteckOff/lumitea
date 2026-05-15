@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { ShoppingCart, Gift, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { giftSets as initialGiftSets } from '@/data/products';
+import { useGiftSets } from '@/hooks/useProducts';
 
 interface GiftSetsProps {
   addToCart: (product: { 
@@ -18,28 +19,10 @@ interface GiftSetsProps {
 
 const GiftSets = ({ addToCart, language }: GiftSetsProps) => {
   const sectionRef = useRef<HTMLDivElement>(null);
-  const [giftSets, setGiftSets] = useState(initialGiftSets);
 
-  // Load gift sets from localStorage on mount
-  useEffect(() => {
-    const savedGiftSets = localStorage.getItem('lumi_tea_giftsets');
-    if (savedGiftSets) {
-      setGiftSets(JSON.parse(savedGiftSets));
-    }
-  }, []);
-
-  // Listen for storage changes
-  useEffect(() => {
-    const handleStorageChange = () => {
-      const savedGiftSets = localStorage.getItem('lumi_tea_giftsets');
-      if (savedGiftSets) {
-        setGiftSets(JSON.parse(savedGiftSets));
-      }
-    };
-    
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+  // Live gift sets from Supabase — falls back to static data while loading
+  const { giftSets: dbGiftSets, loading } = useGiftSets();
+  const giftSets = loading ? initialGiftSets : dbGiftSets;
 
   useEffect(() => {
     const observer = new IntersectionObserver(

@@ -6,13 +6,21 @@ import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+// Top-level handler required by Firebase for background messages.
+@pragma('vm:entry-point')
+Future<void> _bgHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+}
 
 class Notifications {
   static final _local = FlutterLocalNotificationsPlugin();
   static const _channelId = 'promotions';
 
-  static Future<void> init() async {
+  // Call once from main.dart — after Supabase & router are ready.
+  static Future<void> init({required GoRouter router}) async {
     try {
       await Firebase.initializeApp();
     } catch (_) {
@@ -20,19 +28,29 @@ class Notifications {
       return;
     }
 
+    FirebaseMessaging.onBackgroundMessage(_bgHandler);
+
     final messaging = FirebaseMessaging.instance;
     await messaging.requestPermission(alert: true, badge: true, sound: true);
 
+    // ── Local notification plugin ──────────────────────────────────────
     await _local.initialize(
-      const InitializationSettings(
-        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-        iOS: DarwinInitializationSettings(),
+      InitializationSettings(
+        android: const AndroidInitializationSettings('@mipmap/ic_launcher'),
+        iOS: const DarwinInitializationSettings(),
       ),
+      onDidReceiveNotificationResponse: (details) {
+        final payload = details.payload;
+        if (payload != null && payload.startsWith('/')) {
+          router.push(payload);
+        }
+      },
     );
 
     // Create Android notification channel
     await _local
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(
           const AndroidNotificationChannel(
             _channelId,
@@ -42,30 +60,52 @@ class Notifications {
           ),
         );
 
-    // Token registration
+    // ── Token registration ─────────────────────────────────────────────
     final token = await messaging.getToken();
     if (token != null) await _saveToken(token);
     messaging.onTokenRefresh.listen(_saveToken);
 
-    // Foreground messages → show local notification
+    // ── Foreground: show local notification ───────────────────────────
     FirebaseMessaging.onMessage.listen((m) {
       final n = m.notification;
       if (n == null) return;
+      final deeplink = m.data['deeplink'] as String?;
       _local.show(
         m.hashCode,
         n.title,
         n.body,
-        const NotificationDetails(
+        NotificationDetails(
           android: AndroidNotificationDetails(
             _channelId,
             'Lumi Tea promotions',
             importance: Importance.high,
             priority: Priority.high,
           ),
-          iOS: DarwinNotificationDetails(),
+          iOS: const DarwinNotificationDetails(),
         ),
+        payload: deeplink, // used by onDidReceiveNotificationResponse
       );
     });
+
+    // ── Background tap: user tapped notification while app was in bg ──
+    FirebaseMessaging.onMessageOpenedApp.listen((m) {
+      final deeplink = m.data['deeplink'] as String?;
+      if (deeplink != null && deeplink.startsWith('/')) {
+        router.push(deeplink);
+      }
+    });
+
+    // ── Cold start: app launched from a terminated state via notification
+    final initial = await messaging.getInitialMessage();
+    if (initial != null) {
+      final deeplink = initial.data['deeplink'] as String?;
+      if (deeplink != null && deeplink.startsWith('/')) {
+        // Small delay so the router is fully initialised before navigating.
+        Future.delayed(const Duration(milliseconds: 500), () {
+          router.push(deeplink);
+        });
+      }
+    }
   }
 
   static Future<void> _saveToken(String token) async {

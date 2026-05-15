@@ -3,6 +3,7 @@ import { ShoppingCart, Star, Leaf, Coffee, Flower2, Sparkles } from 'lucide-reac
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { products as initialProducts, categories } from '@/data/products';
+import { useProducts } from '@/hooks/useProducts';
 
 interface ProductsProps {
   addToCart: (product: { 
@@ -19,47 +20,20 @@ interface ProductsProps {
 const Products = ({ addToCart, language }: ProductsProps) => {
   const sectionRef = useRef<HTMLDivElement>(null);
   const [activeCategory, setActiveCategory] = useState<string>('all');
-  const [allProducts, setAllProducts] = useState(initialProducts);
-  const [displayedProducts, setDisplayedProducts] = useState(initialProducts);
   const [isAnimating, setIsAnimating] = useState(false);
 
-  // Load products from localStorage on mount
-  useEffect(() => {
-    const savedProducts = localStorage.getItem('lumi_tea_products');
-    if (savedProducts) {
-      const parsed = JSON.parse(savedProducts);
-      setAllProducts(parsed);
-      setDisplayedProducts(parsed);
-    }
-  }, []);
+  // Live products from Supabase — falls back to static data while loading
+  const { products: dbProducts, loading: productsLoading } = useProducts();
+  const allProducts = productsLoading ? initialProducts : dbProducts;
+  const [displayedProducts, setDisplayedProducts] = useState(allProducts);
 
-  // Listen for storage changes (when admin updates products)
+  // Re-filter when Supabase data arrives or category changes
   useEffect(() => {
-    const handleStorageChange = () => {
-      const savedProducts = localStorage.getItem('lumi_tea_products');
-      if (savedProducts) {
-        const parsed = JSON.parse(savedProducts);
-        setAllProducts(parsed);
-      }
-    };
-    
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
-
-  // Update displayed products when category changes
-  useEffect(() => {
-    setIsAnimating(true);
-    const filtered = activeCategory === 'all' 
-      ? allProducts 
+    const filtered = activeCategory === 'all'
+      ? allProducts
       : allProducts.filter(p => p.category === activeCategory);
-    
-    // Small delay for smooth transition
-    setTimeout(() => {
-      setDisplayedProducts(filtered);
-      setIsAnimating(false);
-    }, 150);
-  }, [activeCategory, allProducts]);
+    setDisplayedProducts(filtered);
+  }, [allProducts, activeCategory]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(

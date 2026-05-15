@@ -12,6 +12,7 @@ import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { BlogPage } from '@/pages/Blog';
 import { FAQPage } from '@/pages/FAQ';
 import { CareersPage } from '@/pages/Careers';
+import { ResetPasswordPage } from '@/pages/ResetPasswordPage';
 import Hero from './sections/Hero';
 import Products from './sections/Products';
 import About from './sections/About';
@@ -30,7 +31,7 @@ export interface CartItem {
 }
 
 type Language = 'en' | 'ko' | 'ru';
-type Page = 'home' | 'blog' | 'faq' | 'careers';
+type Page = 'home' | 'blog' | 'faq' | 'careers' | 'reset-password';
 
 function AppContent() {
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -41,7 +42,13 @@ function AppContent() {
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [language, setLanguage] = useState<Language>('en');
-  const [currentPage, setCurrentPage] = useState<Page>('home');
+  const [currentPage, setCurrentPage] = useState<Page>(() => {
+    // Detect password-reset links: Supabase redirects to /reset-password#access_token=…
+    const path = window.location.pathname;
+    const hash = window.location.hash;
+    if (path === '/reset-password' || hash.includes('type=recovery')) return 'reset-password';
+    return 'home';
+  });
   const { user, isAuthenticated, isAdmin, logout } = useAuth();
 
   // Auto-detect language from browser
@@ -212,6 +219,10 @@ function AppContent() {
   const t = translations[language];
 
   // Render different pages
+  if (currentPage === 'reset-password') {
+    return <ResetPasswordPage />;
+  }
+
   if (currentPage === 'blog') {
     return (
       <div className="min-h-screen bg-cream">

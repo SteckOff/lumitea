@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/providers.dart';
@@ -30,20 +31,26 @@ class OrdersPage extends ConsumerWidget {
                 final o = orders[i];
                 return ListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: Text(o.orderNo, style: const TextStyle(fontWeight: FontWeight.w600)),
-                  subtitle: Text('${dateFmt.format(o.createdAt.toLocal())} · ${o.items.length} item(s)'),
+                  title: Text(o.orderNo,
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: Text(
+                      '${dateFmt.format(o.createdAt.toLocal())} · ${o.parsedItems.length} item(s)'),
                   trailing: Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(krw.format(o.total), style: const TextStyle(fontWeight: FontWeight.w700)),
+                      Text(krw.format(o.total),
+                          style: const TextStyle(fontWeight: FontWeight.w700)),
                       Chip(
-                        label: Text(o.status, style: const TextStyle(fontSize: 10)),
+                        label: Text(o.status,
+                            style: const TextStyle(fontSize: 10)),
                         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         visualDensity: VisualDensity.compact,
                       ),
                     ],
                   ),
+                  // Tap → order detail
+                  onTap: () => context.push('/orders/${o.id}'),
                 );
               },
             ),

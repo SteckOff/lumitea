@@ -25,17 +25,32 @@ Future<void> main() async {
   Stripe.merchantIdentifier = 'merchant.kr.lumitea';
   await Stripe.instance.applySettings();
 
-  await Notifications.init();
+  // Notifications.init() needs the router for deeplink navigation.
+  // We initialise it lazily inside LumiTeaApp after the router is available.
 
   runApp(const ProviderScope(child: LumiTeaApp()));
 }
 
-class LumiTeaApp extends ConsumerWidget {
+class LumiTeaApp extends ConsumerStatefulWidget {
   const LumiTeaApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<LumiTeaApp> createState() => _LumiTeaAppState();
+}
+
+class _LumiTeaAppState extends ConsumerState<LumiTeaApp> {
+  bool _notificationsInited = false;
+
+  @override
+  Widget build(BuildContext context) {
     final router = ref.watch(routerProvider);
+
+    // Init push notifications once the router is ready.
+    if (!_notificationsInited) {
+      _notificationsInited = true;
+      Notifications.init(router: router);
+    }
+
     return MaterialApp.router(
       title: 'Lumi Tea',
       debugShowCheckedModeBanner: false,
@@ -52,3 +67,4 @@ class LumiTeaApp extends ConsumerWidget {
     );
   }
 }
+

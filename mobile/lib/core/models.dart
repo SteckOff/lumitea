@@ -203,6 +203,34 @@ class Address {
 }
 
 @immutable
+class OrderItem {
+  final String itemType;
+  final int itemId;
+  final String nameSnapshot;
+  final int priceAtPurchase;
+  final int quantity;
+  final String imageUrl;
+
+  const OrderItem({
+    required this.itemType,
+    required this.itemId,
+    required this.nameSnapshot,
+    required this.priceAtPurchase,
+    required this.quantity,
+    required this.imageUrl,
+  });
+
+  factory OrderItem.fromJson(Map<String, dynamic> j) => OrderItem(
+        itemType: j['item_type'] as String? ?? 'product',
+        itemId: j['item_id'] as int,
+        nameSnapshot: j['name_snapshot'] as String? ?? '',
+        priceAtPurchase: j['price_at_purchase'] as int? ?? 0,
+        quantity: j['quantity'] as int,
+        imageUrl: j['image_url'] as String? ?? '',
+      );
+}
+
+@immutable
 class Order {
   final String id;
   final String orderNo;
@@ -210,7 +238,12 @@ class Order {
   final int total;
   final int subtotal;
   final int shipping;
-  final List<Map<String, dynamic>> items;
+  final int discount;
+  final String? userEmail;
+  final String? userName;
+  final List<Map<String, dynamic>> items; // raw JSONB, kept for backward compat
+  final List<OrderItem> parsedItems;      // typed, use this for UI
+  final Map<String, dynamic> addressSnapshot;
   final DateTime createdAt;
 
   const Order({
@@ -220,20 +253,33 @@ class Order {
     required this.total,
     required this.subtotal,
     required this.shipping,
+    required this.discount,
+    required this.userEmail,
+    required this.userName,
     required this.items,
+    required this.parsedItems,
+    required this.addressSnapshot,
     required this.createdAt,
   });
 
-  factory Order.fromJson(Map<String, dynamic> j) => Order(
-        id: j['id'] as String,
-        orderNo: j['order_no'] as String,
-        status: j['status'] as String,
-        total: j['total'] as int,
-        subtotal: j['subtotal'] as int,
-        shipping: j['shipping'] as int,
-        items: List<Map<String, dynamic>>.from(j['items'] ?? const []),
-        createdAt: DateTime.parse(j['created_at'] as String),
-      );
+  factory Order.fromJson(Map<String, dynamic> j) {
+    final rawItems = List<Map<String, dynamic>>.from(j['items'] ?? const []);
+    return Order(
+      id: j['id'] as String,
+      orderNo: j['order_no'] as String,
+      status: j['status'] as String,
+      total: j['total'] as int,
+      subtotal: j['subtotal'] as int,
+      shipping: j['shipping'] as int,
+      discount: j['discount'] as int? ?? 0,
+      userEmail: j['user_email'] as String?,
+      userName: j['user_name'] as String?,
+      items: rawItems,
+      parsedItems: rawItems.map(OrderItem.fromJson).toList(),
+      addressSnapshot: (j['address_snapshot'] as Map?)?.cast<String, dynamic>() ?? {},
+      createdAt: DateTime.parse(j['created_at'] as String),
+    );
+  }
 }
 
 @immutable

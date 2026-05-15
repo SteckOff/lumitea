@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/models.dart';
 import '../../core/providers.dart';
+import 'widgets/korean_address_form.dart';
 
 class CheckoutPage extends ConsumerStatefulWidget {
   const CheckoutPage({super.key});
@@ -23,11 +24,31 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
   final _address2 = TextEditingController();
   bool _loading = false;
   String? _error;
+  // Whether the user has picked an address via DaumPostcode
+  bool _addressPicked = false;
 
   @override
   void dispose() {
     _name.dispose(); _phone.dispose(); _postal.dispose(); _address1.dispose(); _address2.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickAddress() async {
+    final result = await showModalBottomSheet<KoreanAddress>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => const KoreanAddressSheet(),
+    );
+    if (result != null && mounted) {
+      setState(() {
+        _postal.text = result.postalCode;
+        _address1.text = result.address1;
+        _addressPicked = true;
+        _address2.clear();
+      });
+      // Focus the apt/unit field after picking
+      FocusScope.of(context).nextFocus();
+    }
   }
 
   Future<void> _pay() async {
@@ -121,22 +142,61 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                 validator: (v) => (v == null || v.length < 8) ? 'Required' : null,
               ),
               const SizedBox(height: 12),
-              TextFormField(
-                controller: _postal,
-                decoration: const InputDecoration(labelText: 'Postal code', hintText: '06234'),
-                keyboardType: TextInputType.number,
-                validator: (v) => (v == null || v.length < 5) ? 'Required' : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _address1,
-                decoration: const InputDecoration(labelText: 'Address'),
-                validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+              // Korean address picker — opens Daum Postcode in a bottom sheet
+              FormField<bool>(
+                validator: (_) => _addressPicked ? null : '주소를 검색해 주세요',
+                builder: (field) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: _pickAddress,
+                      icon: const Icon(Icons.search),
+                      label: Text(_addressPicked ? '주소 변경' : '주소 검색 (우편번호)'),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(48),
+                      ),
+                    ),
+                    if (_addressPicked) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.secondaryContainer,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              _postal.text,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: Theme.of(context).colorScheme.onSecondaryContainer,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text(_address1.text)),
+                        ],
+                      ),
+                    ],
+                    if (field.hasError)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6, left: 12),
+                        child: Text(
+                          field.errorText!,
+                          style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 12),
+                        ),
+                      ),
+                  ],
+                ),
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _address2,
-                decoration: const InputDecoration(labelText: 'Apt / unit (optional)'),
+                decoration: const InputDecoration(
+                  labelText: '상세 주소 (동/호수)',
+                  hintText: '예: 101동 1204호',
+                ),
               ),
               const SizedBox(height: 24),
               Text('Order summary', style: Theme.of(context).textTheme.headlineMedium),

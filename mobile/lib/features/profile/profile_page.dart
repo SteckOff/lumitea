@@ -99,13 +99,10 @@ class ProfilePage extends ConsumerWidget {
             if (auth.isAdmin)
               ListTile(
                 leading: const Icon(Icons.admin_panel_settings_outlined, color: Colors.deepPurple),
-                title: const Text('Admin'),
-                subtitle: const Text('Manage products, orders, promotions'),
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Admin screens coming in next iteration')),
-                  );
-                },
+                title: const Text('Admin panel'),
+                subtitle: const Text('Manage orders & push promotions'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push('/admin'),
               ),
             const Divider(),
             ListTile(
