@@ -154,19 +154,23 @@ export interface FcmTokenRow {
   created_at: string;
 }
 
+// supabase-js v2 requires each table to have a Relationships array to satisfy
+// the GenericTable constraint — without it, .update()/.insert() arg types collapse to never.
 export interface Database {
   public: {
     Tables: {
-      profiles: { Row: ProfileRow; Insert: Partial<ProfileRow> & { id: string; email: string }; Update: Partial<ProfileRow> };
-      addresses: { Row: AddressRow; Insert: Omit<AddressRow, 'id' | 'created_at'>; Update: Partial<AddressRow> };
-      products: { Row: ProductRow; Insert: Partial<ProductRow> & { name: string; price: number }; Update: Partial<ProductRow> };
-      gift_sets: { Row: GiftSetRow; Insert: Partial<GiftSetRow> & { name: string; price: number }; Update: Partial<GiftSetRow> };
-      orders: { Row: OrderRow; Insert: Partial<OrderRow>; Update: Partial<OrderRow> };
-      promotions: { Row: PromotionRow; Insert: Partial<PromotionRow> & { title: string; body: string }; Update: Partial<PromotionRow> };
-      subscribers: { Row: SubscriberRow; Insert: { email: string; locale?: Locale }; Update: Partial<SubscriberRow> };
-      fcm_tokens: { Row: FcmTokenRow; Insert: Partial<FcmTokenRow> & { token: string; platform: 'android' | 'ios' | 'web' }; Update: Partial<FcmTokenRow> };
+      profiles: { Row: ProfileRow; Insert: Partial<ProfileRow> & { id: string; email: string }; Update: Partial<ProfileRow>; Relationships: [] };
+      addresses: { Row: AddressRow; Insert: Omit<AddressRow, 'id' | 'created_at'>; Update: Partial<AddressRow>; Relationships: [] };
+      products: { Row: ProductRow; Insert: Partial<ProductRow> & { name: string; price: number }; Update: Partial<ProductRow>; Relationships: [] };
+      gift_sets: { Row: GiftSetRow; Insert: Partial<GiftSetRow> & { name: string; price: number }; Update: Partial<GiftSetRow>; Relationships: [] };
+      orders: { Row: OrderRow; Insert: Partial<OrderRow>; Update: Partial<OrderRow>; Relationships: [] };
+      promotions: { Row: PromotionRow; Insert: Partial<PromotionRow> & { title: string; body: string }; Update: Partial<PromotionRow>; Relationships: [] };
+      subscribers: { Row: SubscriberRow; Insert: { email: string; locale?: Locale }; Update: Partial<SubscriberRow>; Relationships: [] };
+      fcm_tokens: { Row: FcmTokenRow; Insert: Partial<FcmTokenRow> & { token: string; platform: 'android' | 'ios' | 'web' }; Update: Partial<FcmTokenRow>; Relationships: [] };
     };
+    Views: Record<string, never>;
     Functions: Record<string, unknown>;
     Enums: { order_status: OrderStatus; product_category: ProductCategory };
+    CompositeTypes: Record<string, never>;
   };
 }

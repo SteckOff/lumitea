@@ -33,7 +33,7 @@ interface Order {
   subtotal: number;
   shipping: number;
   total: number;
-  status: 'pending' | 'paid' | 'shipped' | 'delivered' | 'cancelled';
+  status: 'pending' | 'paid' | 'shipped' | 'delivered' | 'cancelled' | 'refunded';
   createdAt: string;
   printed?: boolean;
 }
@@ -91,8 +91,8 @@ export function AdminPanel({ isOpen, onClose, language }: AdminPanelProps) {
 
   useEffect(() => {
     if (isOpen) {
-      setOrders(getAllOrders());
-      setSubscribers(getAllSubscribers());
+      getAllOrders().then(setOrders);
+      getAllSubscribers().then(setSubscribers);
       // Load products from localStorage or use initial
       const savedProducts = localStorage.getItem('lumi_tea_products');
       const savedGiftSets = localStorage.getItem('lumi_tea_giftsets');
@@ -229,12 +229,13 @@ export function AdminPanel({ isOpen, onClose, language }: AdminPanelProps) {
       paid: 'bg-green-100 text-green-700',
       shipped: 'bg-blue-100 text-blue-700',
       delivered: 'bg-gray-100 text-gray-700',
-      cancelled: 'bg-red-100 text-red-700'
+      cancelled: 'bg-red-100 text-red-700',
+      refunded: 'bg-purple-100 text-purple-700',
     };
     return styles[status] || styles.pending;
   };
 
-  const handlePrintLabel = (order: Order) => {
+  const handlePrintLabel = async (order: Order) => {
     setSelectedOrder(order);
     
     const printWindow = window.open('', '_blank');
@@ -307,8 +308,8 @@ export function AdminPanel({ isOpen, onClose, language }: AdminPanelProps) {
       printWindow.document.write(labelHTML);
       printWindow.document.close();
       
-      markOrderAsPrinted(order.orderId);
-      setOrders(getAllOrders());
+      await markOrderAsPrinted(order.orderId);
+      getAllOrders().then(setOrders);
     }
   };
 
@@ -387,9 +388,9 @@ export function AdminPanel({ isOpen, onClose, language }: AdminPanelProps) {
   // Refresh orders when tab changes
   useEffect(() => {
     if (activeTab === 'orders') {
-      setOrders(getAllOrders());
+      getAllOrders().then(setOrders);
     } else if (activeTab === 'subscribers') {
-      setSubscribers(getAllSubscribers());
+      getAllSubscribers().then(setSubscribers);
     }
   }, [activeTab]);
 
@@ -438,7 +439,7 @@ export function AdminPanel({ isOpen, onClose, language }: AdminPanelProps) {
           <div>
             <div className="flex justify-between mb-4">
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => setOrders(getAllOrders())}>
+                <Button variant="outline" size="sm" onClick={() => getAllOrders().then(setOrders)}>
                   <Clock className="w-4 h-4 mr-1" /> {t.refresh}
                 </Button>
               </div>
@@ -479,7 +480,7 @@ export function AdminPanel({ isOpen, onClose, language }: AdminPanelProps) {
                         <Button 
                           size="sm" 
                           variant="outline"
-                          onClick={() => { updateOrderStatus(order.orderId, 'shipped'); setOrders(getAllOrders()); }}
+                          onClick={async () => { await updateOrderStatus(order.orderId, 'shipped'); getAllOrders().then(setOrders); }}
                         >
                           <Truck className="w-4 h-4 mr-1" /> {t.markShipped}
                         </Button>
@@ -488,7 +489,7 @@ export function AdminPanel({ isOpen, onClose, language }: AdminPanelProps) {
                         <Button 
                           size="sm" 
                           variant="outline"
-                          onClick={() => { updateOrderStatus(order.orderId, 'delivered'); setOrders(getAllOrders()); }}
+                          onClick={async () => { await updateOrderStatus(order.orderId, 'delivered'); getAllOrders().then(setOrders); }}
                         >
                           <CheckCircle className="w-4 h-4 mr-1" /> {t.markDelivered}
                         </Button>
