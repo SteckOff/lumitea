@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
-import { Package, Mail, Printer, Check, Clock, Truck, CheckCircle, Download, Edit, Save, X, Tag, Box } from 'lucide-react';
+import { Package, Mail, Printer, Check, Clock, Truck, CheckCircle, Download, Edit, Save, X, Tag, Box, Megaphone, Send } from 'lucide-react';
 import { products as initialProducts, giftSets as initialGiftSets } from '@/data/products';
 import { supabase } from '@/lib/supabase';
 
@@ -77,8 +77,23 @@ interface GiftSet {
   outOfStock?: boolean;
 }
 
+interface Promotion {
+  id: number;
+  title: string;
+  title_ko: string;
+  title_ru: string;
+  body: string;
+  body_ko: string;
+  body_ru: string;
+  discount_pct: number | null;
+  promo_code: string | null;
+  pushed_at: string | null;
+  push_sent_count: number;
+  created_at: string;
+}
+
 export function AdminPanel({ isOpen, onClose, language }: AdminPanelProps) {
-  const [activeTab, setActiveTab] = useState<'orders' | 'subscribers' | 'products' | 'giftsets'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'subscribers' | 'products' | 'giftsets' | 'promotions'>('orders');
   const [orders, setOrders] = useState<Order[]>([]);
   const [subscribers, setSubscribers] = useState<string[]>([]);
   const [, setSelectedOrder] = useState<Order | null>(null);
@@ -89,6 +104,12 @@ export function AdminPanel({ isOpen, onClose, language }: AdminPanelProps) {
   const [giftSets, setGiftSets] = useState<GiftSet[]>([]);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editingGiftSet, setEditingGiftSet] = useState<GiftSet | null>(null);
+
+  // Promotions state
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
+  const [newPromo, setNewPromo] = useState({ title: '', title_ko: '', title_ru: '', body: '', body_ko: '', body_ru: '', discount_pct: '', promo_code: '' });
+  const [promoSending, setPromoSending] = useState<number | null>(null);
+  const [promoCreating, setPromoCreating] = useState(false);
 
   // Load products from Supabase (admin sees all, including inactive)
   const loadProducts = useCallback(async () => {
@@ -128,12 +149,56 @@ export function AdminPanel({ isOpen, onClose, language }: AdminPanelProps) {
     }
   }, []);
 
+  const loadPromotions = useCallback(async () => {
+    const { data } = await supabase
+      .from('promotions')
+      .select('id, title, title_ko, title_ru, body, body_ko, body_ru, discount_pct, promo_code, pushed_at, push_sent_count, created_at')
+      .order('id', { ascending: false });
+    if (data) setPromotions(data as Promotion[]);
+  }, []);
+
+  const createPromotion = async () => {
+    if (!newPromo.title || !newPromo.body) return;
+    setPromoCreating(true);
+    const { error } = await supabase.from('promotions').insert({
+      title: newPromo.title,
+      title_ko: newPromo.title_ko || newPromo.title,
+      title_ru: newPromo.title_ru || newPromo.title,
+      body: newPromo.body,
+      body_ko: newPromo.body_ko || newPromo.body,
+      body_ru: newPromo.body_ru || newPromo.body,
+      discount_pct: newPromo.discount_pct ? Number(newPromo.discount_pct) : null,
+      promo_code: newPromo.promo_code || null,
+    });
+    setPromoCreating(false);
+    if (!error) {
+      setNewPromo({ title: '', title_ko: '', title_ru: '', body: '', body_ko: '', body_ru: '', discount_pct: '', promo_code: '' });
+      loadPromotions();
+    } else {
+      alert('Error: ' + error.message);
+    }
+  };
+
+  const sendPush = async (promotionId: number) => {
+    setPromoSending(promotionId);
+    const { error } = await supabase.functions.invoke('send-promotion-push', {
+      body: { promotion_id: promotionId },
+    });
+    setPromoSending(null);
+    if (error) {
+      alert('Push error: ' + error.message);
+    } else {
+      loadPromotions();
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
       getAllOrders().then(setOrders);
       getAllSubscribers().then(setSubscribers);
       loadProducts();
       loadGiftSets();
+      loadPromotions();
     }
   }, [isOpen]);
 
@@ -175,7 +240,22 @@ export function AdminPanel({ isOpen, onClose, language }: AdminPanelProps) {
       bulkEdit: 'Bulk Edit',
       addStock: 'Add Stock',
       reduceStock: 'Reduce Stock',
-      changesApplied: 'Changes applied successfully!'
+      changesApplied: 'Changes applied successfully!',
+      promotions: 'Promotions',
+      newPromotion: 'New Promotion',
+      titleEn: 'Title (EN)',
+      titleKo: 'Title (KO)',
+      titleRu: 'Title (RU)',
+      bodyEn: 'Message (EN)',
+      bodyKo: 'Message (KO)',
+      bodyRu: 'Message (RU)',
+      discountPct: 'Discount %',
+      promoCode: 'Promo Code',
+      createPromo: 'Create',
+      sendPush: 'Send Push',
+      sent: 'Sent',
+      noPromotions: 'No promotions yet',
+      pushCount: 'devices',
     },
     ko: {
       title: '관리자 패널',
@@ -214,7 +294,22 @@ export function AdminPanel({ isOpen, onClose, language }: AdminPanelProps) {
       bulkEdit: '일괄 수정',
       addStock: '재고 추가',
       reduceStock: '재고 감소',
-      changesApplied: '변경사항이 적용되었습니다!'
+      changesApplied: '변경사항이 적용되었습니다!',
+      promotions: '프로모션',
+      newPromotion: '새 프로모션',
+      titleEn: '제목 (EN)',
+      titleKo: '제목 (KO)',
+      titleRu: '제목 (RU)',
+      bodyEn: '내용 (EN)',
+      bodyKo: '내용 (KO)',
+      bodyRu: '내용 (RU)',
+      discountPct: '할인 %',
+      promoCode: '프로모 코드',
+      createPromo: '만들기',
+      sendPush: '푸시 발송',
+      sent: '발송됨',
+      noPromotions: '프로모션이 없습니다',
+      pushCount: '기기',
     },
     ru: {
       title: 'Админ панель',
@@ -253,7 +348,22 @@ export function AdminPanel({ isOpen, onClose, language }: AdminPanelProps) {
       bulkEdit: 'Массовое редактирование',
       addStock: 'Добавить остаток',
       reduceStock: 'Уменьшить остаток',
-      changesApplied: 'Изменения применены!'
+      changesApplied: 'Изменения применены!',
+      promotions: 'Акции',
+      newPromotion: 'Новая акция',
+      titleEn: 'Заголовок (EN)',
+      titleKo: 'Заголовок (KO)',
+      titleRu: 'Заголовок (RU)',
+      bodyEn: 'Текст (EN)',
+      bodyKo: 'Текст (KO)',
+      bodyRu: 'Текст (RU)',
+      discountPct: 'Скидка %',
+      promoCode: 'Промокод',
+      createPromo: 'Создать',
+      sendPush: 'Разослать пуш',
+      sent: 'Отправлено',
+      noPromotions: 'Акций пока нет',
+      pushCount: 'устройств',
     }
   };
 
@@ -459,6 +569,8 @@ export function AdminPanel({ isOpen, onClose, language }: AdminPanelProps) {
       loadProducts();
     } else if (activeTab === 'giftsets') {
       loadGiftSets();
+    } else if (activeTab === 'promotions') {
+      loadPromotions();
     }
   }, [activeTab]);
 
@@ -500,6 +612,13 @@ export function AdminPanel({ isOpen, onClose, language }: AdminPanelProps) {
           >
             <Box className="w-4 h-4 inline mr-1" />
             {t.giftSets} ({giftSets.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('promotions')}
+            className={`pb-2 px-4 font-medium whitespace-nowrap ${activeTab === 'promotions' ? 'border-b-2 border-pink-500 text-pink-500' : 'text-gray-500'}`}
+          >
+            <Megaphone className="w-4 h-4 inline mr-1" />
+            {t.promotions} ({promotions.length})
           </button>
         </div>
 
@@ -791,6 +910,94 @@ export function AdminPanel({ isOpen, onClose, language }: AdminPanelProps) {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+        {activeTab === 'promotions' && (
+          <div className="space-y-6">
+            {/* Create promotion form */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h4 className="font-semibold mb-3">{t.newPromotion}</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                <div>
+                  <label className="text-xs text-gray-500">{t.titleEn}</label>
+                  <Input value={newPromo.title} onChange={(e) => setNewPromo(p => ({ ...p, title: e.target.value }))} placeholder="Summer Sale" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500">{t.titleKo}</label>
+                  <Input value={newPromo.title_ko} onChange={(e) => setNewPromo(p => ({ ...p, title_ko: e.target.value }))} placeholder="여름 세일" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500">{t.titleRu}</label>
+                  <Input value={newPromo.title_ru} onChange={(e) => setNewPromo(p => ({ ...p, title_ru: e.target.value }))} placeholder="Летняя распродажа" />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                <div>
+                  <label className="text-xs text-gray-500">{t.bodyEn}</label>
+                  <textarea value={newPromo.body} onChange={(e) => setNewPromo(p => ({ ...p, body: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm min-h-[60px]" placeholder="Get 15% off all oolong teas!" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500">{t.bodyKo}</label>
+                  <textarea value={newPromo.body_ko} onChange={(e) => setNewPromo(p => ({ ...p, body_ko: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm min-h-[60px]" placeholder="모든 울룬 차 15% 할인!" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500">{t.bodyRu}</label>
+                  <textarea value={newPromo.body_ru} onChange={(e) => setNewPromo(p => ({ ...p, body_ru: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm min-h-[60px]" placeholder="Скидка 15% на все улуны!" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <div>
+                  <label className="text-xs text-gray-500">{t.discountPct}</label>
+                  <Input type="number" min="0" max="100" value={newPromo.discount_pct} onChange={(e) => setNewPromo(p => ({ ...p, discount_pct: e.target.value }))} placeholder="15" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500">{t.promoCode}</label>
+                  <Input value={newPromo.promo_code} onChange={(e) => setNewPromo(p => ({ ...p, promo_code: e.target.value }))} placeholder="SUMMER15" />
+                </div>
+              </div>
+              <Button size="sm" onClick={createPromotion} disabled={promoCreating || !newPromo.title || !newPromo.body} className="bg-pink-500 hover:bg-pink-600">
+                <Save className="w-4 h-4 mr-1" /> {promoCreating ? '...' : t.createPromo}
+              </Button>
+            </div>
+
+            {/* Promotions list */}
+            {promotions.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">{t.noPromotions}</div>
+            ) : (
+              <div className="space-y-3 max-h-[50vh] overflow-y-auto">
+                {promotions.map((promo) => (
+                  <div key={promo.id} className="bg-gray-50 rounded-lg p-4 flex justify-between items-start gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold">{promo.title}</span>
+                        {promo.discount_pct && (
+                          <span className="bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded">{promo.discount_pct}%</span>
+                        )}
+                        {promo.promo_code && (
+                          <span className="bg-blue-100 text-blue-600 text-xs px-2 py-0.5 rounded font-mono">{promo.promo_code}</span>
+                        )}
+                        {promo.pushed_at && (
+                          <span className="bg-green-100 text-green-600 text-xs px-2 py-0.5 rounded">
+                            {t.sent}: {promo.push_sent_count} {t.pushCount}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-600 mt-1 line-clamp-2">{promo.body}</p>
+                      <p className="text-xs text-gray-400 mt-1">{new Date(promo.created_at).toLocaleDateString()}</p>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => sendPush(promo.id)}
+                      disabled={promoSending === promo.id}
+                      className="bg-pink-500 hover:bg-pink-600 shrink-0"
+                    >
+                      <Send className="w-4 h-4 mr-1" />
+                      {promoSending === promo.id ? '...' : t.sendPush}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </DialogContent>

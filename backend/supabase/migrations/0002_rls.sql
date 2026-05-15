@@ -200,3 +200,27 @@ create policy "subscribers: admin write"
 create policy "subscribers: admin delete"
   on public.subscribers for delete
   using (public.is_admin());
+
+----------------------------------------------------------------------
+-- Table-level privileges (required in addition to RLS policies)
+-- These were missing from the original migration and were applied
+-- manually. Listed here so fresh deployments work without manual steps.
+----------------------------------------------------------------------
+
+grant select on public.products    to anon, authenticated;
+grant select on public.gift_sets   to anon, authenticated;
+grant select on public.promotions  to anon, authenticated;
+
+grant all on public.orders         to authenticated;
+grant all on public.order_items    to authenticated;
+grant all on public.addresses      to authenticated;
+grant all on public.profiles       to authenticated;
+grant all on public.fcm_tokens     to authenticated;
+grant all on public.subscribers    to anon, authenticated;
+
+-- Sequences for serial PKs
+grant usage, select on sequence public.orders_id_seq         to authenticated;
+grant usage, select on sequence public.order_items_id_seq    to authenticated;
+grant usage, select on sequence public.addresses_id_seq      to authenticated;
+grant usage, select on sequence public.promotions_id_seq     to authenticated;
+grant usage, select on sequence public.subscribers_id_seq    to anon, authenticated;
