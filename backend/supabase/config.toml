@@ -1,0 +1,41 @@
+project_id = "lumitea"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+
+[auth]
+enabled = true
+site_url = "https://lumitea.kr"
+additional_redirect_urls = ["http://localhost:5173", "kr.lumitea://auth/callback"]
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = true
+
+# Edge functions: stripe-webhook MUST run without verifying JWT (Stripe doesn't send one).
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.send-contact]
+verify_jwt = false
+
+[functions.create-payment-intent]
+verify_jwt = true
+
+[functions.send-promotion-push]
+verify_jwt = true

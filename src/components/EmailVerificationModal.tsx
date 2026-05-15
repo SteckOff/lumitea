@@ -61,9 +61,9 @@ export function EmailVerificationModal({ isOpen, onClose, onVerified, language, 
 
   const t = content[language];
 
-  const handleVerify = () => {
+  const handleVerify = async () => {
     if (inputCode.length === 6) {
-      const isValid = verifyEmail(inputCode);
+      const isValid = await verifyEmail(inputCode);
       if (isValid) {
         setSuccess(true);
         setTimeout(() => {
@@ -78,7 +78,7 @@ export function EmailVerificationModal({ isOpen, onClose, onVerified, language, 
 
   const handleResend = async () => {
     setResendSuccess(false);
-    const result = await resendVerificationCode();
+    const result = await resendVerificationCode(email);
     if (result.success) {
       setResendSuccess(true);
       setTimeout(() => setResendSuccess(false), 3000);

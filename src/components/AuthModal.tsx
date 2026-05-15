@@ -102,24 +102,17 @@ export function AuthModal({ isOpen, onClose, language }: AuthModalProps) {
     setError('');
     
     const success = await login(loginData.email, loginData.password);
-    
+
     if (success) {
-      alert(t.loginSuccess);
       onClose();
       setLoginData({ email: '', password: '' });
     } else {
-      // Check if user exists but not verified
-      const users = JSON.parse(localStorage.getItem('lumi_tea_users') || '[]');
-      const user = users.find((u: any) => u.email === loginData.email && u.password === loginData.password);
-      if (user && !user.isVerified) {
-        setError(t.notVerified);
-        setRegisteredEmail(loginData.email);
-        setShowVerification(true);
-      } else {
-        setError(t.errorLogin);
-      }
+      // Supabase returns the same generic error whether the user is unverified
+      // or the password is wrong. Offer the verification flow as a recovery path.
+      setError(t.errorLogin);
+      setRegisteredEmail(loginData.email);
     }
-    
+
     setIsLoading(false);
   };
 

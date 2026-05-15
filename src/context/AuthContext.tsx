@@ -1,18 +1,12 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import { api } from '@/services/api';
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import type { Session, User as SupabaseUser } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
+import type { OrderRow, ProfileRow, AddressRow } from '@/lib/database.types';
 
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  phone?: string;
-  isVerified: boolean;
-  verificationCode?: string;
-  addresses?: Address[];
-  isAdmin?: boolean;
-}
+// Public-facing types preserved from the previous localStorage-backed AuthContext
+// so existing components (AuthModal, AdminPanel, CheckoutForm, ...) keep compiling.
 
-interface Address {
+interface UiAddress {
   id: string;
   name: string;
   phone: string;
@@ -22,17 +16,22 @@ interface Address {
   isDefault: boolean;
 }
 
-interface Order {
+interface UiUser {
+  id: string;
+  email: string;
+  name: string;
+  phone?: string;
+  isVerified: boolean;
+  addresses?: UiAddress[];
+  isAdmin?: boolean;
+}
+
+type UiOrder = {
   orderId: string;
   userId: string;
   userEmail: string;
   userName: string;
-  items: Array<{
-    id: number;
-    name: string;
-    quantity: number;
-    price: number;
-  }>;
+  items: Array<{ id: number; name: string; quantity: number; price: number }>;
   address: {
     name: string;
     phone: string;
@@ -43,322 +42,288 @@ interface Order {
   subtotal: number;
   shipping: number;
   total: number;
-  status: 'pending' | 'paid' | 'shipped' | 'delivered' | 'cancelled';
+  status: OrderRow['status'];
   createdAt: string;
   printed?: boolean;
-}
+};
 
 interface AuthContextType {
-  user: User | null;
+  user: UiUser | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  isLoading: boolean;
+  // Auth
   login: (email: string, password: string) => Promise<boolean>;
   register: (name: string, email: string, password: string, phone: string) => Promise<{ success: boolean; message: string }>;
-  logout: () => void;
-  verifyEmail: (code: string) => boolean;
-  resendVerificationCode: () => Promise<{ success: boolean }>;
+  logout: () => Promise<void>;
+  verifyEmail: (code: string) => Promise<boolean>;
+  resendVerificationCode: (email?: string) => Promise<{ success: boolean }>;
   resetPassword: (email: string) => Promise<boolean>;
-  updatePassword: (code: string, newPassword: string) => boolean;
-  addAddress: (address: Omit<Address, 'id'>) => void;
-  removeAddress: (id: string) => void;
-  setDefaultAddress: (id: string) => void;
-  // Admin functions
-  getAllOrders: () => Order[];
-  getPendingOrders: () => Order[];
-  updateOrderStatus: (orderId: string, status: Order['status']) => void;
-  markOrderAsPrinted: (orderId: string) => void;
-  getAllSubscribers: () => string[];
+  updatePassword: (newPassword: string) => Promise<boolean>;
+  // Admin MFA (TOTP)
+  mfaChallenge: () => Promise<{ factorId: string; challengeId: string } | null>;
+  mfaVerify: (factorId: string, challengeId: string, code: string) => Promise<boolean>;
+  // Addresses
+  addAddress: (address: Omit<UiAddress, 'id'>) => Promise<void>;
+  removeAddress: (id: string) => Promise<void>;
+  setDefaultAddress: (id: string) => Promise<void>;
+  // Admin queries
+  getAllOrders: () => Promise<UiOrder[]>;
+  getPendingOrders: () => Promise<UiOrder[]>;
+  updateOrderStatus: (orderId: string, status: OrderRow['status']) => Promise<void>;
+  markOrderAsPrinted: (orderId: string) => Promise<void>;
+  getAllSubscribers: () => Promise<string[]>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Admin credentials
-const ADMIN_EMAIL = 'admin@lumitea.kr';
-const ADMIN_PASSWORD = 'LumiTea2025!';
+function profileToUi(
+  user: SupabaseUser,
+  profile: ProfileRow | null,
+  addresses: AddressRow[],
+): UiUser {
+  return {
+    id: user.id,
+    email: user.email ?? profile?.email ?? '',
+    name: profile?.name ?? user.user_metadata?.name ?? '',
+    phone: profile?.phone ?? user.user_metadata?.phone ?? undefined,
+    isVerified: !!user.email_confirmed_at,
+    isAdmin: !!profile?.is_admin,
+    addresses: addresses.map((a) => ({
+      id: a.id,
+      name: a.recipient_name,
+      phone: a.phone,
+      postalCode: a.postal_code,
+      address1: a.address1,
+      address2: a.address2 ?? undefined,
+      isDefault: a.is_default,
+    })),
+  };
+}
+
+function orderToUi(o: OrderRow): UiOrder {
+  return {
+    orderId: o.order_no,
+    userId: o.user_id ?? '',
+    userEmail: o.user_email,
+    userName: o.user_name ?? '',
+    items: (o.items as any[]).map((it) => ({
+      id: it.item_id,
+      name: it.name_snapshot,
+      quantity: it.quantity,
+      price: it.price_at_purchase,
+    })),
+    address: {
+      name: o.address_snapshot?.recipient_name ?? '',
+      phone: o.address_snapshot?.phone ?? '',
+      postalCode: o.address_snapshot?.postal_code ?? '',
+      address1: o.address_snapshot?.address1 ?? '',
+      address2: o.address_snapshot?.address2 ?? undefined,
+    },
+    subtotal: o.subtotal,
+    shipping: o.shipping,
+    total: o.total,
+    status: o.status,
+    createdAt: o.created_at,
+    printed: o.printed,
+  };
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<UiUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const savedUser = localStorage.getItem('lumi_tea_user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
+  const refreshUser = useCallback(async (session: Session | null) => {
+    if (!session?.user) {
+      setUser(null);
+      return;
     }
+    const [{ data: profile }, { data: addresses }] = await Promise.all([
+      supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle(),
+      supabase.from('addresses').select('*').eq('user_id', session.user.id).order('is_default', { ascending: false }),
+    ]);
+    setUser(profileToUi(session.user, profile ?? null, addresses ?? []));
   }, []);
 
-  const generateVerificationCode = () => {
-    return Math.floor(100000 + Math.random() * 900000).toString();
+  useEffect(() => {
+    supabase.auth.getSession().then(async ({ data }) => {
+      await refreshUser(data.session);
+      setIsLoading(false);
+    });
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      refreshUser(session);
+    });
+    return () => sub.subscription.unsubscribe();
+  }, [refreshUser]);
+
+  const login: AuthContextType['login'] = async (email, password) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    return !error;
   };
 
-  const login = async (email: string, password: string): Promise<boolean> => {
-    // Check admin login
-    if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-      const adminUser: User = {
-        id: 'admin',
-        email: ADMIN_EMAIL,
-        name: 'Admin',
-        isVerified: true,
-        isAdmin: true,
-        addresses: []
-      };
-      setUser(adminUser);
-      localStorage.setItem('lumi_tea_user', JSON.stringify(adminUser));
-      return true;
-    }
-
-    // Regular user login
-    const users = JSON.parse(localStorage.getItem('lumi_tea_users') || '[]');
-    const foundUser = users.find((u: any) => u.email === email && u.password === password);
-    
-    if (foundUser) {
-      if (!foundUser.isVerified) {
-        return false;
-      }
-      const { password, ...userWithoutPassword } = foundUser;
-      setUser(userWithoutPassword);
-      localStorage.setItem('lumi_tea_user', JSON.stringify(userWithoutPassword));
-      return true;
-    }
-    return false;
-  };
-
-  const register = async (name: string, email: string, password: string, phone: string): Promise<{ success: boolean; message: string }> => {
-    const users = JSON.parse(localStorage.getItem('lumi_tea_users') || '[]');
-    
-    if (users.find((u: any) => u.email === email)) {
-      return { success: false, message: 'Email already exists' };
-    }
-
-    const verificationCode = generateVerificationCode();
-    
-    const newUser = {
-      id: Date.now().toString(),
-      name,
+  const register: AuthContextType['register'] = async (name, email, password, phone) => {
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      phone,
-      isVerified: false,
-      verificationCode,
-      addresses: [],
-      isAdmin: false
-    };
-
-    users.push(newUser);
-    localStorage.setItem('lumi_tea_users', JSON.stringify(users));
-
-    // Send verification email via API - MUST succeed before registration completes
-    try {
-      const result = await api.sendVerification(email, name, verificationCode);
-      if (!result.success) {
-        // Remove user if email failed to send
-        const updatedUsers = JSON.parse(localStorage.getItem('lumi_tea_users') || '[]');
-        const filteredUsers = updatedUsers.filter((u: any) => u.email !== email);
-        localStorage.setItem('lumi_tea_users', JSON.stringify(filteredUsers));
-        return { success: false, message: 'Failed to send verification email. Please try again.' };
-      }
-    } catch (error) {
-      // Remove user if email failed to send
-      const updatedUsers = JSON.parse(localStorage.getItem('lumi_tea_users') || '[]');
-      const filteredUsers = updatedUsers.filter((u: any) => u.email !== email);
-      localStorage.setItem('lumi_tea_users', JSON.stringify(filteredUsers));
-      return { success: false, message: 'Failed to send verification email. Please check your email address and try again.' };
-    }
-
-    return { 
-      success: true, 
-      message: 'Registration successful! Please check your email for verification code.'
+      options: { data: { name, phone } },
+    });
+    if (error) return { success: false, message: error.message };
+    // If the project requires email confirmation, the session is null until verified.
+    return {
+      success: true,
+      message: data.session
+        ? 'Account created.'
+        : 'Account created. Check your email for the verification code.',
     };
   };
 
-  const verifyEmail = (code: string): boolean => {
-    const users = JSON.parse(localStorage.getItem('lumi_tea_users') || '[]');
-    const userIndex = users.findIndex((u: any) => u.email === user?.email && u.verificationCode === code);
-    
-    if (userIndex !== -1) {
-      users[userIndex].isVerified = true;
-      users[userIndex].verificationCode = undefined;
-      localStorage.setItem('lumi_tea_users', JSON.stringify(users));
-      
-      const { password, ...userWithoutPassword } = users[userIndex];
-      setUser(userWithoutPassword);
-      localStorage.setItem('lumi_tea_user', JSON.stringify(userWithoutPassword));
-      return true;
-    }
-    return false;
+  const logout = async () => {
+    await supabase.auth.signOut();
   };
 
-  const resendVerificationCode = async (): Promise<{ success: boolean }> => {
-    if (!user) return { success: false };
-    
-    const users = JSON.parse(localStorage.getItem('lumi_tea_users') || '[]');
-    const userIndex = users.findIndex((u: any) => u.email === user.email);
-    
-    if (userIndex !== -1) {
-      const newCode = generateVerificationCode();
-      users[userIndex].verificationCode = newCode;
-      localStorage.setItem('lumi_tea_users', JSON.stringify(users));
-      
-      // Send via API - MUST succeed
-      try {
-        const result = await api.sendVerification(user.email, user.name, newCode);
-        if (!result.success) {
-          return { success: false };
-        }
-      } catch (error) {
-        return { success: false };
-      }
-      
-      return { success: true };
-    }
-    return { success: false };
+  const verifyEmail: AuthContextType['verifyEmail'] = async (code) => {
+    // Requires the Supabase "Confirm signup" email template to use {{ .Token }} (6-digit code).
+    // Email is taken from the latest signup attempt persisted by Supabase.
+    const { data: sess } = await supabase.auth.getSession();
+    const email = sess.session?.user.email ?? user?.email;
+    if (!email) return false;
+    const { error } = await supabase.auth.verifyOtp({ email, token: code, type: 'email' });
+    return !error;
   };
 
-  const resetPassword = async (email: string): Promise<boolean> => {
-    const users = JSON.parse(localStorage.getItem('lumi_tea_users') || '[]');
-    const userIndex = users.findIndex((u: any) => u.email === email);
-    
-    if (userIndex !== -1) {
-      const resetCode = generateVerificationCode();
-      users[userIndex].resetCode = resetCode;
-      localStorage.setItem('lumi_tea_users', JSON.stringify(users));
-      
-      // Send via API
-      try {
-        await api.sendResetCode(email, resetCode);
-      } catch (error) {
-        console.log('API not available');
-      }
-      
-      return true;
-    }
-    return false;
+  const resendVerificationCode: AuthContextType['resendVerificationCode'] = async (email) => {
+    const targetEmail = email ?? user?.email;
+    if (!targetEmail) return { success: false };
+    const { error } = await supabase.auth.resend({ type: 'signup', email: targetEmail });
+    return { success: !error };
   };
 
-  const updatePassword = (code: string, newPassword: string): boolean => {
-    const users = JSON.parse(localStorage.getItem('lumi_tea_users') || '[]');
-    const userIndex = users.findIndex((u: any) => u.resetCode === code);
-    
-    if (userIndex !== -1) {
-      users[userIndex].password = newPassword;
-      users[userIndex].resetCode = undefined;
-      localStorage.setItem('lumi_tea_users', JSON.stringify(users));
-      return true;
-    }
-    return false;
+  const resetPassword: AuthContextType['resetPassword'] = async (email) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    return !error;
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('lumi_tea_user');
+  const updatePassword: AuthContextType['updatePassword'] = async (newPassword) => {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    return !error;
   };
 
-  const addAddress = (address: Omit<Address, 'id'>) => {
+  // --- MFA (TOTP) for admin ---
+  const mfaChallenge: AuthContextType['mfaChallenge'] = async () => {
+    const { data: factors } = await supabase.auth.mfa.listFactors();
+    const totp = factors?.totp?.find((f) => f.status === 'verified');
+    if (!totp) return null;
+    const { data, error } = await supabase.auth.mfa.challenge({ factorId: totp.id });
+    if (error || !data) return null;
+    return { factorId: totp.id, challengeId: data.id };
+  };
+
+  const mfaVerify: AuthContextType['mfaVerify'] = async (factorId, challengeId, code) => {
+    const { error } = await supabase.auth.mfa.verify({ factorId, challengeId, code });
+    return !error;
+  };
+
+  // --- Addresses ---
+  const addAddress: AuthContextType['addAddress'] = async (a) => {
     if (!user) return;
-    
-    const newAddress = { ...address, id: Date.now().toString() };
-    const updatedUser = {
-      ...user,
-      addresses: [...(user.addresses || []), newAddress]
-    };
-    
-    setUser(updatedUser);
-    localStorage.setItem('lumi_tea_user', JSON.stringify(updatedUser));
-    
-    const users = JSON.parse(localStorage.getItem('lumi_tea_users') || '[]');
-    const userIndex = users.findIndex((u: any) => u.id === user.id);
-    if (userIndex !== -1) {
-      users[userIndex] = { ...users[userIndex], addresses: updatedUser.addresses };
-      localStorage.setItem('lumi_tea_users', JSON.stringify(users));
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (!authUser) return;
+    if (a.isDefault) {
+      await supabase.from('addresses').update({ is_default: false }).eq('user_id', authUser.id);
     }
+    await supabase.from('addresses').insert({
+      user_id: authUser.id,
+      recipient_name: a.name,
+      phone: a.phone,
+      postal_code: a.postalCode,
+      address1: a.address1,
+      address2: a.address2 ?? null,
+      is_default: a.isDefault,
+    });
+    const { data: { session } } = await supabase.auth.getSession();
+    await refreshUser(session);
   };
 
-  const removeAddress = (id: string) => {
-    if (!user) return;
-    
-    const updatedUser = {
-      ...user,
-      addresses: (user.addresses || []).filter(a => a.id !== id)
-    };
-    
-    setUser(updatedUser);
-    localStorage.setItem('lumi_tea_user', JSON.stringify(updatedUser));
+  const removeAddress: AuthContextType['removeAddress'] = async (id) => {
+    await supabase.from('addresses').delete().eq('id', id);
+    const { data: { session } } = await supabase.auth.getSession();
+    await refreshUser(session);
   };
 
-  const setDefaultAddress = (id: string) => {
-    if (!user) return;
-    
-    const updatedAddresses = (user.addresses || []).map(a => ({
-      ...a,
-      isDefault: a.id === id
-    }));
-    
-    const updatedUser = { ...user, addresses: updatedAddresses };
-    setUser(updatedUser);
-    localStorage.setItem('lumi_tea_user', JSON.stringify(updatedUser));
+  const setDefaultAddress: AuthContextType['setDefaultAddress'] = async (id) => {
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (!authUser) return;
+    await supabase.from('addresses').update({ is_default: false }).eq('user_id', authUser.id);
+    await supabase.from('addresses').update({ is_default: true }).eq('id', id);
+    const { data: { session } } = await supabase.auth.getSession();
+    await refreshUser(session);
   };
 
-  // Admin functions
-  const getAllOrders = (): Order[] => {
-    return JSON.parse(localStorage.getItem('lumi_tea_orders') || '[]');
+  // --- Admin queries ---
+  const getAllOrders: AuthContextType['getAllOrders'] = async () => {
+    const { data } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+    return (data ?? []).map(orderToUi);
   };
 
-  const getPendingOrders = (): Order[] => {
-    const orders = getAllOrders();
-    return orders.filter(o => !o.printed && o.status === 'paid');
+  const getPendingOrders: AuthContextType['getPendingOrders'] = async () => {
+    const { data } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('status', 'paid')
+      .eq('printed', false)
+      .order('created_at', { ascending: false });
+    return (data ?? []).map(orderToUi);
   };
 
-  const updateOrderStatus = (orderId: string, status: Order['status']) => {
-    const orders = getAllOrders();
-    const orderIndex = orders.findIndex(o => o.orderId === orderId);
-    if (orderIndex !== -1) {
-      orders[orderIndex].status = status;
-      localStorage.setItem('lumi_tea_orders', JSON.stringify(orders));
-    }
+  const updateOrderStatus: AuthContextType['updateOrderStatus'] = async (orderNo, status) => {
+    await supabase.from('orders').update({ status }).eq('order_no', orderNo);
   };
 
-  const markOrderAsPrinted = (orderId: string) => {
-    const orders = getAllOrders();
-    const orderIndex = orders.findIndex(o => o.orderId === orderId);
-    if (orderIndex !== -1) {
-      orders[orderIndex].printed = true;
-      localStorage.setItem('lumi_tea_orders', JSON.stringify(orders));
-    }
+  const markOrderAsPrinted: AuthContextType['markOrderAsPrinted'] = async (orderNo) => {
+    await supabase.from('orders').update({ printed: true }).eq('order_no', orderNo);
   };
 
-  const getAllSubscribers = (): string[] => {
-    return JSON.parse(localStorage.getItem('lumi_tea_subscribers') || '[]');
+  const getAllSubscribers: AuthContextType['getAllSubscribers'] = async () => {
+    const { data } = await supabase.from('subscribers').select('email').eq('is_active', true);
+    return (data ?? []).map((s) => s.email);
   };
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      isAuthenticated: !!user,
-      isAdmin: user?.isAdmin || false,
-      login,
-      register,
-      logout,
-      verifyEmail,
-      resendVerificationCode,
-      resetPassword,
-      updatePassword,
-      addAddress,
-      removeAddress,
-      setDefaultAddress,
-      getAllOrders,
-      getPendingOrders,
-      updateOrderStatus,
-      markOrderAsPrinted,
-      getAllSubscribers
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isAuthenticated: !!user,
+        isAdmin: !!user?.isAdmin,
+        isLoading,
+        login,
+        register,
+        logout,
+        verifyEmail,
+        resendVerificationCode,
+        resetPassword,
+        updatePassword,
+        mfaChallenge,
+        mfaVerify,
+        addAddress,
+        removeAddress,
+        setDefaultAddress,
+        getAllOrders,
+        getPendingOrders,
+        updateOrderStatus,
+        markOrderAsPrinted,
+        getAllSubscribers,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within an AuthProvider');
+  return ctx;
 }

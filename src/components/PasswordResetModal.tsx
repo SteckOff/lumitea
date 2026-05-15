@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
-import { Lock, Mail, Eye, EyeOff, Check } from 'lucide-react';
+import { Lock, Mail, Check, AlertCircle } from 'lucide-react';
 
 interface PasswordResetModalProps {
   isOpen: boolean;
@@ -12,120 +12,71 @@ interface PasswordResetModalProps {
 }
 
 export function PasswordResetModal({ isOpen, onClose, language }: PasswordResetModalProps) {
-  const [step, setStep] = useState<'email' | 'code' | 'password' | 'success'>('email');
   const [email, setEmail] = useState('');
-  const [code, setCode] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const { resetPassword, updatePassword } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const [sent, setSent] = useState(false);
+  const { resetPassword } = useAuth();
 
   const content = {
     en: {
       title: 'Reset Password',
-      emailStep: 'Enter your email',
-      codeStep: 'Enter verification code',
-      passwordStep: 'Create new password',
-      success: 'Password reset successfully!',
+      description: 'Enter your email and we will send you a link to reset your password.',
       emailLabel: 'Email',
       emailPlaceholder: 'your@email.com',
-      codeLabel: 'Verification Code',
-      codePlaceholder: '000000',
-      passwordLabel: 'New Password',
-      confirmLabel: 'Confirm Password',
-      sendCode: 'Send Code',
-      verify: 'Verify',
-      reset: 'Reset Password',
-      backToLogin: 'Back to Login',
-      passwordMismatch: 'Passwords do not match',
-      emailNotFound: 'Email not found'
+      send: 'Send reset link',
+      success: 'Reset link sent! Check your inbox.',
+      checkSpam: "Don't see it? Check your spam folder.",
+      genericError: 'Something went wrong. Please try again.',
+      close: 'Close',
     },
     ko: {
       title: '비밀번호 재설정',
-      emailStep: '이메일을 입력하세요',
-      codeStep: '인증 코드를 입력하세요',
-      passwordStep: '새 비밀번호를 만드세요',
-      success: '비밀번호가 성공적으로 재설정되었습니다!',
+      description: '이메일을 입력하면 비밀번호 재설정 링크를 보내드립니다.',
       emailLabel: '이메일',
       emailPlaceholder: 'your@email.com',
-      codeLabel: '인증 코드',
-      codePlaceholder: '000000',
-      passwordLabel: '새 비밀번호',
-      confirmLabel: '비밀번호 확인',
-      sendCode: '코드 발송',
-      verify: '인증하기',
-      reset: '비밀번호 재설정',
-      backToLogin: '로그인으로 돌아가기',
-      passwordMismatch: '비밀번호가 일치하지 않습니다',
-      emailNotFound: '이메일을 찾을 수 없습니다'
+      send: '재설정 링크 보내기',
+      success: '재설정 링크를 발송했습니다! 받은 편지함을 확인하세요.',
+      checkSpam: '보이지 않나요? 스팸 폴더를 확인하세요.',
+      genericError: '문제가 발생했습니다. 다시 시도해주세요.',
+      close: '닫기',
     },
     ru: {
       title: 'Сброс пароля',
-      emailStep: 'Введите ваш email',
-      codeStep: 'Введите код подтверждения',
-      passwordStep: 'Создайте новый пароль',
-      success: 'Пароль успешно сброшен!',
+      description: 'Введите email — мы пришлём ссылку для сброса пароля.',
       emailLabel: 'Email',
       emailPlaceholder: 'your@email.com',
-      codeLabel: 'Код подтверждения',
-      codePlaceholder: '000000',
-      passwordLabel: 'Новый пароль',
-      confirmLabel: 'Подтвердите пароль',
-      sendCode: 'Отправить код',
-      verify: 'Подтвердить',
-      reset: 'Сбросить пароль',
-      backToLogin: 'Вернуться к входу',
-      passwordMismatch: 'Пароли не совпадают',
-      emailNotFound: 'Email не найден'
-    }
+      send: 'Отправить ссылку',
+      success: 'Ссылка отправлена! Проверьте почту.',
+      checkSpam: 'Не видите письмо? Проверьте папку «Спам».',
+      genericError: 'Что-то пошло не так. Попробуйте снова.',
+      close: 'Закрыть',
+    },
   };
 
   const t = content[language];
 
-  const handleSendCode = async () => {
-    const success = await resetPassword(email);
-    if (success) {
-      setStep('code');
-      setError('');
+  const handleSend = async () => {
+    setIsLoading(true);
+    setError('');
+    const ok = await resetPassword(email);
+    setIsLoading(false);
+    if (ok) {
+      setSent(true);
     } else {
-      setError(t.emailNotFound);
+      setError(t.genericError);
     }
   };
 
-  const handleVerifyCode = () => {
-    if (code.length === 6) {
-      setStep('password');
-      setError('');
-    }
-  };
-
-  const handleResetPassword = () => {
-    if (newPassword !== confirmPassword) {
-      setError(t.passwordMismatch);
-      return;
-    }
-    if (newPassword.length < 6) {
-      setError(language === 'en' ? 'Password must be at least 6 characters' : language === 'ko' ? '비밀번호는 최소 6자 이상이어야 합니다' : 'Пароль должен быть не менее 6 символов');
-      return;
-    }
-    
-    const success = updatePassword(code, newPassword);
-    if (success) {
-      setStep('success');
-      setTimeout(() => {
-        onClose();
-        setStep('email');
-        setEmail('');
-        setCode('');
-        setNewPassword('');
-        setConfirmPassword('');
-      }, 2000);
-    }
+  const handleClose = () => {
+    onClose();
+    setSent(false);
+    setEmail('');
+    setError('');
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-center flex items-center justify-center gap-2">
@@ -133,10 +84,19 @@ export function PasswordResetModal({ isOpen, onClose, language }: PasswordResetM
             {t.title}
           </DialogTitle>
         </DialogHeader>
-        
-        {step === 'email' && (
+
+        {sent ? (
+          <div className="text-center py-6 space-y-3">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+              <Check className="w-8 h-8 text-green-500" />
+            </div>
+            <p className="text-green-600 font-medium">{t.success}</p>
+            <p className="text-sm text-gray-500">{t.checkSpam}</p>
+            <Button onClick={handleClose} className="mt-2">{t.close}</Button>
+          </div>
+        ) : (
           <div className="space-y-4">
-            <p className="text-gray-600 text-center">{t.emailStep}</p>
+            <p className="text-gray-600 text-center">{t.description}</p>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">{t.emailLabel}</label>
               <div className="relative">
@@ -150,76 +110,15 @@ export function PasswordResetModal({ isOpen, onClose, language }: PasswordResetM
                 />
               </div>
             </div>
-            {error && <p className="text-red-500 text-sm">{error}</p>}
-            <Button onClick={handleSendCode} className="w-full btn-primary" disabled={!email}>
-              {t.sendCode}
-            </Button>
-          </div>
-        )}
-
-        {step === 'code' && (
-          <div className="space-y-4">
-            <p className="text-gray-600 text-center">{t.codeStep}</p>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">{t.codeLabel}</label>
-              <Input
-                type="text"
-                value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                placeholder={t.codePlaceholder}
-                className="text-center text-2xl tracking-widest"
-                maxLength={6}
-              />
-            </div>
-            <Button onClick={handleVerifyCode} className="w-full btn-primary" disabled={code.length !== 6}>
-              {t.verify}
-            </Button>
-          </div>
-        )}
-
-        {step === 'password' && (
-          <div className="space-y-4">
-            <p className="text-gray-600 text-center">{t.passwordStep}</p>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">{t.passwordLabel}</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <Input
-                  type={showPassword ? 'text' : 'password'}
-                  value={newPassword}
-                  onChange={(e) => { setNewPassword(e.target.value); setError(''); }}
-                  className="pl-10 pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
+            {error && (
+              <div className="flex items-center gap-2 text-red-500 text-sm bg-red-50 p-2 rounded">
+                <AlertCircle className="w-4 h-4" />
+                {error}
               </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">{t.confirmLabel}</label>
-              <Input
-                type={showPassword ? 'text' : 'password'}
-                value={confirmPassword}
-                onChange={(e) => { setConfirmPassword(e.target.value); setError(''); }}
-              />
-            </div>
-            {error && <p className="text-red-500 text-sm">{error}</p>}
-            <Button onClick={handleResetPassword} className="w-full btn-primary" disabled={!newPassword || !confirmPassword}>
-              {t.reset}
+            )}
+            <Button onClick={handleSend} className="w-full btn-primary" disabled={!email || isLoading}>
+              {isLoading ? '...' : t.send}
             </Button>
-          </div>
-        )}
-
-        {step === 'success' && (
-          <div className="text-center py-8">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Check className="w-8 h-8 text-green-500" />
-            </div>
-            <p className="text-green-600 font-medium">{t.success}</p>
           </div>
         )}
       </DialogContent>
