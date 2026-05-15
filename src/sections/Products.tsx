@@ -20,7 +20,7 @@ interface ProductsProps {
 const Products = ({ addToCart, language }: ProductsProps) => {
   const sectionRef = useRef<HTMLDivElement>(null);
   const [activeCategory, setActiveCategory] = useState<string>('all');
-  const [isAnimating, setIsAnimating] = useState(false);
+  const [isAnimating] = useState(false);
 
   // Live products from Supabase — falls back to static data while loading
   const { products: dbProducts, loading: productsLoading } = useProducts();
