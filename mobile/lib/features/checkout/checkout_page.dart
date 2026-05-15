@@ -4,7 +4,7 @@ import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
-import '../../core/models.dart';
+import '../../core/models.dart' as models;
 import '../../core/providers.dart';
 import 'widgets/korean_address_form.dart';
 
@@ -63,7 +63,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
 
     final supabase = ref.read(supabaseProvider);
 
-    final address = Address(
+    final address = models.Address(
       recipientName: _name.text.trim(),
       phone: _phone.text.trim(),
       postalCode: _postal.text.trim(),
