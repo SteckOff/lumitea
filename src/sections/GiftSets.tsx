@@ -6,13 +6,14 @@ import { giftSets as initialGiftSets } from '@/data/products';
 import { useGiftSets } from '@/hooks/useProducts';
 
 interface GiftSetsProps {
-  addToCart: (product: { 
-    id: number; 
-    name: string; 
+  addToCart: (product: {
+    id: number;
+    name: string;
     nameKo: string;
     nameRu: string;
-    price: number; 
-    image: string 
+    price: number;
+    image: string;
+    itemType?: 'product' | 'gift_set';
   }) => void;
   language: 'en' | 'ko' | 'ru';
 }
@@ -196,7 +197,8 @@ const GiftSets = ({ addToCart, language }: GiftSetsProps) => {
                             nameKo: set.nameKo,
                             nameRu: set.nameRu,
                             price: set.price,
-                            image: set.image
+                            image: set.image,
+                            itemType: 'gift_set',
                           })}
                           className="bg-pink-500 hover:bg-pink-600 text-white rounded-full"
                         >

@@ -28,6 +28,7 @@ export interface CartItem {
   price: number;
   quantity: number;
   image: string;
+  itemType?: 'product' | 'gift_set';
 }
 
 type Language = 'en' | 'ko' | 'ru';
@@ -102,13 +103,14 @@ function AppContent() {
     return () => clearInterval(interval);
   }, []);
 
-  const addToCart = (product: { 
-    id: number; 
-    name: string; 
+  const addToCart = (product: {
+    id: number;
+    name: string;
     nameKo: string;
     nameRu: string;
-    price: number; 
-    image: string 
+    price: number;
+    image: string;
+    itemType?: 'product' | 'gift_set';
   }) => {
     setCart(prev => {
       const existing = prev.find(item => item.id === product.id);
@@ -584,7 +586,7 @@ function AppContent() {
           </DialogHeader>
           <CheckoutForm 
             amount={cartTotal}
-            items={cart.map(item => ({ id: item.id, name: getProductName(item), quantity: item.quantity, price: item.price }))}
+            items={cart.map(item => ({ id: item.id, name: getProductName(item), quantity: item.quantity, price: item.price, itemType: item.itemType ?? 'product' }))}
             onSuccess={() => {
               setCart([]);
               setIsCheckoutOpen(false);

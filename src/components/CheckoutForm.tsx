@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { Button } from '@/components/ui/button';
-import { Loader2, CreditCard, Check, Mail } from 'lucide-react';
+import { Loader2, CreditCard, Check, Mail, Lock } from 'lucide-react';
 import { KoreanAddressForm } from './KoreanAddressForm';
 import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 interface CheckoutFormProps {
   amount: number;
@@ -12,21 +13,22 @@ interface CheckoutFormProps {
     name: string;
     quantity: number;
     price: number;
+    itemType?: 'product' | 'gift_set';
   }>;
   onSuccess: () => void;
   onCancel: () => void;
   language: 'en' | 'ko' | 'ru';
 }
 
-export function CheckoutForm({ amount, items, onSuccess, onCancel, language }: CheckoutFormProps) {
+export function CheckoutForm({ amount, items, onCancel, language }: CheckoutFormProps) {
   const stripe = useStripe();
   const elements = useElements();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [step, setStep] = useState<'address' | 'payment' | 'success'>('address');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [address, setAddress] = useState<any>(null);
-  const [orderId, setOrderId] = useState<string>('');
+  const [orderNo, setOrderNo] = useState<string>('');
 
   const content = {
     en: {
@@ -39,31 +41,37 @@ export function CheckoutForm({ amount, items, onSuccess, onCancel, language }: C
       addressTitle: 'Delivery Address',
       paymentTitle: 'Payment',
       successTitle: 'Order Confirmed!',
-      successMessage: 'Thank you for your order. A confirmation email has been sent.',
+      successMessage: 'Thank you! A confirmation email will be sent to',
       orderNumber: 'Order Number',
       processing: 'Processing...',
       payNow: 'Pay Now',
       back: 'Back',
       securePayment: 'Secure payment by Stripe',
-      emailSent: 'Confirmation email sent to'
+      loginRequired: 'Please sign in to complete your purchase.',
+      loginButton: 'Sign in',
+      cardInfo: 'Card Information',
+      testCard: 'Test card: 4242 4242 4242 4242',
     },
     ko: {
       orderSummary: '주문 요약',
       items: '상품',
       shipping: '배송비',
       shippingCost: '3,000원',
-      freeShipping: '묶음배송 (5만원 이상)',
+      freeShipping: '무료배송 (5만원 이상)',
       total: '총액',
       addressTitle: '배송 주소',
       paymentTitle: '결제',
       successTitle: '주문 완료!',
-      successMessage: '주문해 주셔서 감사합니다. 확인 이메일을 본내드렸습니다.',
+      successMessage: '주문해 주셔서 감사합니다! 확인 이메일을 보내드렸습니다.',
       orderNumber: '주문번호',
       processing: '처리 중...',
       payNow: '결제하기',
       back: '뒤로',
       securePayment: 'Stripe 안전 결제',
-      emailSent: '확인 이메일 발송'
+      loginRequired: '구매를 완료하려면 로그인해 주세요.',
+      loginButton: '로그인',
+      cardInfo: '카드 정보',
+      testCard: '테스트 카드: 4242 4242 4242 4242',
     },
     ru: {
       orderSummary: 'Сводка заказа',
@@ -74,15 +82,18 @@ export function CheckoutForm({ amount, items, onSuccess, onCancel, language }: C
       total: 'Итого',
       addressTitle: 'Адрес доставки',
       paymentTitle: 'Оплата',
-      successTitle: 'Заказ подтвержден!',
-      successMessage: 'Спасибо за заказ. Письмо с подтверждением отправлено.',
+      successTitle: 'Заказ оформлен!',
+      successMessage: 'Спасибо! Письмо с подтверждением отправлено на',
       orderNumber: 'Номер заказа',
       processing: 'Обработка...',
       payNow: 'Оплатить',
       back: 'Назад',
       securePayment: 'Безопасная оплата через Stripe',
-      emailSent: 'Подтверждение отправлено на'
-    }
+      loginRequired: 'Войдите в аккаунт, чтобы оформить заказ.',
+      loginButton: 'Войти',
+      cardInfo: 'Данные карты',
+      testCard: 'Тестовая карта: 4242 4242 4242 4242',
+    },
   };
 
   const t = content[language];
@@ -96,83 +107,89 @@ export function CheckoutForm({ amount, items, onSuccess, onCancel, language }: C
     setStep('payment');
   };
 
-  const sendOrderConfirmationEmail = (orderData: any) => {
-    // In production, this would call your backend API
-    // For demo, we'll create a mailto link that opens email client
-    const emailBody = encodeURIComponent(`
-LUMI TEA - Order Confirmation
-
-Order Number: ${orderData.orderId}
-Date: ${new Date().toLocaleString()}
-
-Shipping Address:
-${orderData.address.name}
-${orderData.address.phone}
-${orderData.address.postalCode}
-${orderData.address.address1}
-${orderData.address.address2 || ''}
-
-Items:
-${orderData.items.map((item: any) => `- ${item.name} x${item.quantity} = ${(item.price * item.quantity).toLocaleString()} KRW`).join('\n')}
-
-Subtotal: ${orderData.subtotal.toLocaleString()} KRW
-Shipping: ${orderData.shipping === 0 ? 'FREE' : orderData.shipping.toLocaleString() + ' KRW'}
-Total: ${orderData.total.toLocaleString()} KRW
-
-Thank you for choosing Lumi Tea!
-We'll send tracking information once your order ships.
-
-Questions? Reply to this email or contact us at hello@lumitea.kr
-    `);
-
-    // Open email client with pre-filled order details
-    window.open(`mailto:${user?.email || address?.name?.replace(/\s/g, '').toLowerCase() + '@email.com'}?subject=Lumi Tea Order Confirmation - ${orderData.orderId}&body=${emailBody}`, '_blank');
-  };
-
   const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!stripe || !elements) {
+    if (!stripe || !elements) return;
+    if (!isAuthenticated || !user) {
+      setError(t.loginRequired);
       return;
     }
+
+    const cardElement = elements.getElement(CardElement);
+    if (!cardElement) return;
 
     setIsProcessing(true);
     setError(null);
 
-    // Simulate payment processing
-    setTimeout(() => {
-      const newOrderId = 'LUMI-' + Date.now().toString().slice(-8);
-      setOrderId(newOrderId);
-      
-      // Save order to localStorage (in production, save to database)
-      const orderData = {
-        orderId: newOrderId,
-        userId: user?.id || 'guest',
-        items,
-        address,
-        subtotal: amount,
-        shipping: shippingCost,
-        total: finalTotal,
-        status: 'paid',
-        createdAt: new Date().toISOString()
+    try {
+      // 1. Get session JWT for Edge Function auth
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error(t.loginRequired);
+
+      // 2. Call Edge Function — creates order in DB + Stripe PaymentIntent
+      const { data: piData, error: fnError } = await supabase.functions.invoke(
+        'create-payment-intent',
+        {
+          body: {
+            items: items.map((item) => ({
+              item_type: item.itemType ?? 'product',
+              item_id: item.id,
+              quantity: item.quantity,
+            })),
+            address: {
+              recipient_name: address.name,
+              phone: address.phone,
+              postal_code: address.postalCode,
+              address1: address.address1,
+              address2: address.address2 || undefined,
+            },
+            locale: language,
+          },
+        },
+      );
+
+      if (fnError) throw new Error(fnError.message);
+      if (piData?.error) throw new Error(piData.error);
+
+      const { client_secret: clientSecret, order_no } = piData as {
+        client_secret: string;
+        order_no: string;
       };
-      
-      const orders = JSON.parse(localStorage.getItem('lumi_tea_orders') || '[]');
-      orders.push(orderData);
-      localStorage.setItem('lumi_tea_orders', JSON.stringify(orders));
 
-      // Send confirmation email
-      sendOrderConfirmationEmail(orderData);
+      // 3. Confirm card payment with Stripe
+      const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(
+        clientSecret,
+        {
+          payment_method: {
+            card: cardElement,
+            billing_details: {
+              name: address.name,
+              phone: address.phone,
+            },
+          },
+        },
+      );
 
-      setIsProcessing(false);
+      if (stripeError) {
+        throw new Error(stripeError.message ?? 'Payment failed');
+      }
+
+      if (paymentIntent?.status !== 'succeeded') {
+        throw new Error('Payment was not completed. Please try again.');
+      }
+
+      // 4. Payment succeeded — the stripe-webhook Edge Function will mark the order as `paid`
+      setOrderNo(order_no);
       setStep('success');
-      
-      setTimeout(() => {
-        onSuccess();
-      }, 3000);
-    }, 2000);
+    } catch (err: any) {
+      setError(err.message ?? 'Something went wrong. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
+  // ── Success screen ────────────────────────────────────────────────────────
   if (step === 'success') {
     return (
       <div className="text-center py-8">
@@ -183,20 +200,28 @@ Questions? Reply to this email or contact us at hello@lumitea.kr
         <p className="text-gray-600 mb-4">{t.successMessage}</p>
         <div className="bg-gray-50 rounded-lg p-4 mb-4">
           <p className="text-sm text-gray-500">{t.orderNumber}</p>
-          <p className="text-lg font-bold">{orderId}</p>
+          <p className="text-lg font-bold">{orderNo}</p>
         </div>
-        <p className="text-sm text-gray-500 flex items-center justify-center gap-2">
-          <Mail className="w-4 h-4" />
-          {t.emailSent} {user?.email || address?.name}
-        </p>
+        {user?.email && (
+          <p className="text-sm text-gray-500 flex items-center justify-center gap-2">
+            <Mail className="w-4 h-4" />
+            {user.email}
+          </p>
+        )}
       </div>
     );
   }
 
+  // ── Address step ─────────────────────────────────────────────────────────
   if (step === 'address') {
     return (
       <div className="space-y-4">
         <h3 className="text-lg font-bold">{t.addressTitle}</h3>
+        {!isAuthenticated && (
+          <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-lg p-3 text-sm">
+            {t.loginRequired}
+          </div>
+        )}
         <KoreanAddressForm onSubmit={handleAddressSubmit} language={language} />
         <Button variant="outline" onClick={onCancel} className="w-full">
           {t.back}
@@ -205,12 +230,13 @@ Questions? Reply to this email or contact us at hello@lumitea.kr
     );
   }
 
+  // ── Payment step ─────────────────────────────────────────────────────────
   return (
     <form onSubmit={handlePayment} className="space-y-4">
       <h3 className="text-lg font-bold">{t.paymentTitle}</h3>
-      
+
       {/* Order Summary */}
-      <div className="bg-gray-50 p-4 rounded-xl mb-4">
+      <div className="bg-gray-50 p-4 rounded-xl">
         <h4 className="font-medium mb-2">{t.orderSummary}</h4>
         <div className="space-y-1 text-sm">
           <div className="flex justify-between">
@@ -228,8 +254,9 @@ Questions? Reply to this email or contact us at hello@lumitea.kr
         </div>
       </div>
 
+      {/* Card Input */}
       <div className="space-y-2">
-        <label className="block text-sm font-medium text-gray-700">Card Information</label>
+        <label className="block text-sm font-medium text-gray-700">{t.cardInfo}</label>
         <div className="border rounded-xl p-4 bg-white">
           <CardElement
             options={{
@@ -244,12 +271,13 @@ Questions? Reply to this email or contact us at hello@lumitea.kr
             }}
           />
         </div>
+        {import.meta.env.DEV && (
+          <p className="text-xs text-gray-400">{t.testCard}</p>
+        )}
       </div>
 
       {error && (
-        <div className="bg-red-50 text-red-500 p-3 rounded-lg text-sm">
-          {error}
-        </div>
+        <div className="bg-red-50 text-red-500 p-3 rounded-lg text-sm">{error}</div>
       )}
 
       <div className="flex gap-3">
@@ -281,6 +309,7 @@ Questions? Reply to this email or contact us at hello@lumitea.kr
       </div>
 
       <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
+        <Lock className="w-3 h-3" />
         <span>{t.securePayment}</span>
       </div>
     </form>

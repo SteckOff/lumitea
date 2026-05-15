@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { Package, Mail, Printer, Check, Clock, Truck, CheckCircle, Download, Edit, Save, X, Tag, Box } from 'lucide-react';
 import { products as initialProducts, giftSets as initialGiftSets } from '@/data/products';
+import { supabase } from '@/lib/supabase';
 
 interface AdminPanelProps {
   isOpen: boolean;
@@ -89,15 +90,50 @@ export function AdminPanel({ isOpen, onClose, language }: AdminPanelProps) {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editingGiftSet, setEditingGiftSet] = useState<GiftSet | null>(null);
 
+  // Load products from Supabase (admin sees all, including inactive)
+  const loadProducts = useCallback(async () => {
+    const { data } = await supabase
+      .from('products')
+      .select('id, name, name_ko, name_ru, price, original_price, stock, out_of_stock, bestseller, is_new, image_url, weight, category')
+      .order('id');
+    if (data) {
+      setProducts(data.map((r: any) => ({
+        ...initialProducts.find(p => p.id === r.id) ?? initialProducts[0],
+        id: r.id, name: r.name, nameKo: r.name_ko, nameRu: r.name_ru,
+        price: r.price, originalPrice: r.original_price,
+        stock: r.stock, outOfStock: r.out_of_stock,
+        bestseller: r.bestseller, new: r.is_new,
+        image: r.image_url, weight: r.weight, category: r.category,
+      })));
+    } else {
+      setProducts(initialProducts);
+    }
+  }, []);
+
+  const loadGiftSets = useCallback(async () => {
+    const { data } = await supabase
+      .from('gift_sets')
+      .select('id, name, name_ko, name_ru, price, original_price, stock, out_of_stock, bestseller, image_url, includes')
+      .order('id');
+    if (data) {
+      setGiftSets(data.map((r: any) => ({
+        ...initialGiftSets.find(g => g.id === r.id) ?? initialGiftSets[0],
+        id: r.id, name: r.name, nameKo: r.name_ko, nameRu: r.name_ru,
+        price: r.price, originalPrice: r.original_price,
+        stock: r.stock, outOfStock: r.out_of_stock,
+        bestseller: r.bestseller, image: r.image_url, includes: r.includes ?? [],
+      })));
+    } else {
+      setGiftSets(initialGiftSets);
+    }
+  }, []);
+
   useEffect(() => {
     if (isOpen) {
       getAllOrders().then(setOrders);
       getAllSubscribers().then(setSubscribers);
-      // Load products from localStorage or use initial
-      const savedProducts = localStorage.getItem('lumi_tea_products');
-      const savedGiftSets = localStorage.getItem('lumi_tea_giftsets');
-      setProducts(savedProducts ? JSON.parse(savedProducts) : initialProducts);
-      setGiftSets(savedGiftSets ? JSON.parse(savedGiftSets) : initialGiftSets);
+      loadProducts();
+      loadGiftSets();
     }
   }, [isOpen]);
 
@@ -348,22 +384,51 @@ export function AdminPanel({ isOpen, onClose, language }: AdminPanelProps) {
   };
 
   // Product management functions
-  const saveProduct = (product: Product) => {
-    const updatedProducts = products.map(p => p.id === product.id ? product : p);
-    setProducts(updatedProducts);
-    localStorage.setItem('lumi_tea_products', JSON.stringify(updatedProducts));
-    // Trigger storage event for other tabs
-    window.dispatchEvent(new StorageEvent('storage', { key: 'lumi_tea_products' }));
+  const saveProduct = async (product: Product) => {
+    const { error } = await supabase
+      .from('products')
+      .update({
+        name: product.name,
+        name_ko: product.nameKo,
+        name_ru: product.nameRu,
+        price: product.price,
+        original_price: product.originalPrice ?? null,
+        stock: product.stock,
+        out_of_stock: product.outOfStock,
+        bestseller: product.bestseller,
+        is_new: product.new,
+      })
+      .eq('id', product.id);
+    if (error) {
+      alert('Save failed: ' + error.message);
+      return;
+    }
+    // Optimistic update
+    setProducts(prev => prev.map(p => p.id === product.id ? product : p));
     setEditingProduct(null);
     alert(t.changesApplied);
   };
 
-  const saveGiftSet = (giftSet: GiftSet) => {
-    const updatedGiftSets = giftSets.map(g => g.id === giftSet.id ? giftSet : g);
-    setGiftSets(updatedGiftSets);
-    localStorage.setItem('lumi_tea_giftsets', JSON.stringify(updatedGiftSets));
-    // Trigger storage event for other tabs
-    window.dispatchEvent(new StorageEvent('storage', { key: 'lumi_tea_giftsets' }));
+  const saveGiftSet = async (giftSet: GiftSet) => {
+    const { error } = await supabase
+      .from('gift_sets')
+      .update({
+        name: giftSet.name,
+        name_ko: giftSet.nameKo,
+        name_ru: giftSet.nameRu,
+        price: giftSet.price,
+        original_price: giftSet.originalPrice ?? null,
+        stock: giftSet.stock,
+        out_of_stock: giftSet.outOfStock,
+        bestseller: giftSet.bestseller,
+        includes: giftSet.includes,
+      })
+      .eq('id', giftSet.id);
+    if (error) {
+      alert('Save failed: ' + error.message);
+      return;
+    }
+    setGiftSets(prev => prev.map(g => g.id === giftSet.id ? giftSet : g));
     setEditingGiftSet(null);
     alert(t.changesApplied);
   };
@@ -385,12 +450,16 @@ export function AdminPanel({ isOpen, onClose, language }: AdminPanelProps) {
     }
   };
 
-  // Refresh orders when tab changes
+  // Refresh data when tab changes
   useEffect(() => {
     if (activeTab === 'orders') {
       getAllOrders().then(setOrders);
     } else if (activeTab === 'subscribers') {
       getAllSubscribers().then(setSubscribers);
+    } else if (activeTab === 'products') {
+      loadProducts();
+    } else if (activeTab === 'giftsets') {
+      loadGiftSets();
     }
   }, [activeTab]);
 
