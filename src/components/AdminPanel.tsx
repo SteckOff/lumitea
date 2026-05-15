@@ -119,7 +119,7 @@ export function AdminPanel({ isOpen, onClose, language }: AdminPanelProps) {
       setGiftSets(data.map((r: any) => ({
         ...initialGiftSets.find(g => g.id === r.id) ?? initialGiftSets[0],
         id: r.id, name: r.name, nameKo: r.name_ko, nameRu: r.name_ru,
-        price: r.price, originalPrice: r.original_price,
+        price: r.price,
         stock: r.stock, outOfStock: r.out_of_stock,
         bestseller: r.bestseller, image: r.image_url, includes: r.includes ?? [],
       })));
@@ -417,7 +417,6 @@ export function AdminPanel({ isOpen, onClose, language }: AdminPanelProps) {
         name_ko: giftSet.nameKo,
         name_ru: giftSet.nameRu,
         price: giftSet.price,
-        original_price: giftSet.originalPrice ?? null,
         stock: giftSet.stock,
         out_of_stock: giftSet.outOfStock,
         bestseller: giftSet.bestseller,
