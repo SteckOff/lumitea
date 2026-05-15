@@ -9,7 +9,6 @@
 //   FCM_SERVICE_ACCOUNT_JSON  — full JSON of the service account key (paste in Supabase secrets)
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { create, getNumericDate } from 'jsr:@djwt/core@3';   // JWT for Google OAuth2
 import { handlePreflight, json } from '../_shared/cors.ts';
 
 interface RequestBody {
@@ -26,35 +25,41 @@ interface ServiceAccount {
 
 let cachedToken: { value: string; expiresAt: number } | null = null;
 
-async function getAccessToken(sa: ServiceAccount): Promise<string> {
-  if (cachedToken && cachedToken.expiresAt > Date.now() + 60_000) return cachedToken.value;
+function b64url(buf: ArrayBuffer): string {
+  return btoa(String.fromCharCode(...new Uint8Array(buf)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
 
-  // Convert PEM private key to CryptoKey
-  const pem = sa.private_key.replace(/\\n/g, '\n');
+async function signRS256(payload: object, pemKey: string): Promise<string> {
+  const pem = pemKey.replace(/\\n/g, '\n');
   const pkBody = pem
     .replace('-----BEGIN PRIVATE KEY-----', '')
     .replace('-----END PRIVATE KEY-----', '')
     .replace(/\s+/g, '');
   const der = Uint8Array.from(atob(pkBody), (c) => c.charCodeAt(0));
   const key = await crypto.subtle.importKey(
-    'pkcs8',
-    der,
+    'pkcs8', der,
     { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
-    false,
-    ['sign'],
+    false, ['sign'],
   );
+  const header = b64url(new TextEncoder().encode(JSON.stringify({ alg: 'RS256', typ: 'JWT' })));
+  const body = b64url(new TextEncoder().encode(JSON.stringify(payload)));
+  const msg = new TextEncoder().encode(`${header}.${body}`);
+  const sig = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, msg);
+  return `${header}.${body}.${b64url(sig)}`;
+}
 
-  const jwt = await create(
-    { alg: 'RS256', typ: 'JWT' },
-    {
-      iss: sa.client_email,
-      scope: 'https://www.googleapis.com/auth/firebase.messaging',
-      aud: sa.token_uri,
-      iat: getNumericDate(0),
-      exp: getNumericDate(60 * 60),
-    },
-    key,
-  );
+async function getAccessToken(sa: ServiceAccount): Promise<string> {
+  if (cachedToken && cachedToken.expiresAt > Date.now() + 60_000) return cachedToken.value;
+
+  const now = Math.floor(Date.now() / 1000);
+  const jwt = await signRS256({
+    iss: sa.client_email,
+    scope: 'https://www.googleapis.com/auth/firebase.messaging',
+    aud: sa.token_uri,
+    iat: now,
+    exp: now + 3600,
+  }, sa.private_key);
 
   const res = await fetch(sa.token_uri, {
     method: 'POST',

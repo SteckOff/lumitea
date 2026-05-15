@@ -1,53 +1,33 @@
-const API_URL = import.meta.env.VITE_API_URL || '';
+import { supabase } from '@/lib/supabase';
+
+const LEGACY_API_URL = import.meta.env.VITE_API_URL || '';
 
 export const api = {
-  // Send verification code
-  async sendVerification(email: string, name: string, code: string) {
-    const response = await fetch(`${API_URL}/api/send-verification`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, name, code })
+  // Send contact form via Edge Function
+  async sendContact(name: string, email: string, _subject: string, message: string) {
+    const { data, error } = await supabase.functions.invoke('send-contact', {
+      body: { name, email, message },
     });
-    return response.json();
+    if (error) throw error;
+    return data;
   },
 
-  // Send contact form
-  async sendContact(name: string, email: string, subject: string, message: string) {
-    const response = await fetch(`${API_URL}/api/send-contact`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, subject, message })
-    });
-    return response.json();
-  },
-
-  // Subscribe to newsletter
+  // Subscribe to newsletter — writes to Supabase subscribers table
   async subscribe(email: string) {
-    const response = await fetch(`${API_URL}/api/subscribe`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email })
-    });
-    return response.json();
+    const { error } = await supabase
+      .from('subscribers')
+      .upsert({ email }, { onConflict: 'email', ignoreDuplicates: true });
+    if (error) throw error;
+    return { ok: true };
   },
 
-  // Send chat conversation
+  // Send chat conversation transcript (legacy server)
   async sendChat(email: string, messages: any[], language: string) {
-    const response = await fetch(`${API_URL}/api/send-chat`, {
+    const response = await fetch(`${LEGACY_API_URL}/api/send-chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, messages, language })
+      body: JSON.stringify({ email, messages, language }),
     });
     return response.json();
   },
-
-  // Send password reset code
-  async sendResetCode(email: string, code: string) {
-    const response = await fetch(`${API_URL}/api/send-reset-code`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, code })
-    });
-    return response.json();
-  }
 };
