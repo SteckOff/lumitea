@@ -308,6 +308,14 @@ const Footer = ({ language, onNavigate }: FooterProps) => {
                   {language === 'en' ? 'FAQ' : language === 'ko' ? '자주 묻는 질문' : 'FAQ'}
                 </button>
               </li>
+              <li>
+                <a
+                  href="/track"
+                  className="text-gray-400 hover:text-pink-400 transition-colors"
+                >
+                  {language === 'en' ? 'Track Order' : language === 'ko' ? '주문 추적' : 'Отследить заказ'}
+                </a>
+              </li>
             </ul>
           </div>
         </div>

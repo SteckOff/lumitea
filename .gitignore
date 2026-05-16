@@ -9,3 +9,4 @@ supabase/.branches/
 .DS_Store
 dist-bins/
 mobile/build/
+dist/

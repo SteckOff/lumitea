@@ -7,6 +7,7 @@
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { handlePreflight, json } from '../_shared/cors.ts';
+import { sendMail } from '../_shared/mailer.ts';
 
 interface Body {
   order_id: string;
@@ -137,17 +138,6 @@ Deno.serve(async (req) => {
     return json({ error: 'order_update_failed', detail: updErr?.message }, 500);
   }
 
-  // Send email (best-effort — don't fail the request if SMTP is misconfigured).
-  const host = Deno.env.get('SMTP_HOST');
-  const port = Number(Deno.env.get('SMTP_PORT') ?? '465');
-  const user = Deno.env.get('SMTP_USER');
-  const pass = Deno.env.get('SMTP_PASS');
-  const from = Deno.env.get('MAIL_FROM') ?? user;
-
-  if (!host || !user || !pass || !from) {
-    return json({ ok: true, emailed: false, reason: 'smtp_not_configured' });
-  }
-
   const mail = buildEmail({
     orderNo: order.order_no as string,
     status: body.status,
@@ -157,20 +147,12 @@ Deno.serve(async (req) => {
     total: order.total as number,
   });
 
-  try {
-    const { SMTPClient } = await import('npm:emailjs@4');
-    const client = new SMTPClient({ user, password: pass, host, port, ssl: port === 465 });
-    await client.sendAsync({
-      from: from!,
-      to: order.user_email as string,
-      subject: mail.subject,
-      text: mail.text,
-      attachment: [{ data: mail.html, alternative: true }],
-    });
-  } catch (e) {
-    console.error('smtp_failed', e);
-    return json({ ok: true, emailed: false, reason: 'smtp_failed' });
-  }
+  const res = await sendMail({
+    to: order.user_email as string,
+    subject: mail.subject,
+    text: mail.text,
+    html: mail.html,
+  });
 
-  return json({ ok: true, emailed: true });
+  return json({ ok: true, emailed: res.ok, reason: res.reason });
 });

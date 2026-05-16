@@ -13,6 +13,8 @@ import { BlogPage } from '@/pages/Blog';
 import { FAQPage } from '@/pages/FAQ';
 import { CareersPage } from '@/pages/Careers';
 import { ResetPasswordPage } from '@/pages/ResetPasswordPage';
+import { TrackOrderPage } from '@/pages/TrackOrder';
+import { FreeShippingBanner } from '@/components/FreeShippingBanner';
 import Hero from './sections/Hero';
 import Products from './sections/Products';
 import About from './sections/About';
@@ -32,7 +34,7 @@ export interface CartItem {
 }
 
 type Language = 'en' | 'ko' | 'ru';
-type Page = 'home' | 'blog' | 'faq' | 'careers' | 'reset-password';
+type Page = 'home' | 'blog' | 'faq' | 'careers' | 'reset-password' | 'track';
 
 function AppContent() {
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -48,6 +50,7 @@ function AppContent() {
     const path = window.location.pathname;
     const hash = window.location.hash;
     if (path === '/reset-password' || hash.includes('type=recovery')) return 'reset-password';
+    if (path === '/track') return 'track';
     return 'home';
   });
   const { user, isAuthenticated, isAdmin, logout } = useAuth();
@@ -225,6 +228,10 @@ function AppContent() {
     return <ResetPasswordPage />;
   }
 
+  if (currentPage === 'track') {
+    return <TrackOrderPage />;
+  }
+
   if (currentPage === 'blog') {
     return (
       <div className="min-h-screen bg-cream">
@@ -345,6 +352,8 @@ function AppContent() {
   // Home page
   return (
     <div className="min-h-screen bg-cream">
+      {/* Free-shipping progress banner (scrolls with page) */}
+      <FreeShippingBanner cartSubtotal={cartTotal} language={language} />
       {/* Navigation */}
       <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         scrolled ? 'glass shadow-lg' : 'bg-transparent'

@@ -8,6 +8,7 @@
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import Stripe from 'npm:stripe@17';
+import { sendMail } from '../_shared/mailer.ts';
 
 const stripeKey = Deno.env.get('STRIPE_SECRET_KEY')!;
 const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET')!;
@@ -59,40 +60,43 @@ async function sendConfirmationEmail(orderId: string) {
     .single();
   if (!order) return;
 
-  const host = Deno.env.get('SMTP_HOST');
-  const port = Number(Deno.env.get('SMTP_PORT') ?? '465');
-  const user = Deno.env.get('SMTP_USER');
-  const pass = Deno.env.get('SMTP_PASS');
-  const from = Deno.env.get('MAIL_FROM') ?? user;
-  if (!host || !user || !pass) {
-    console.warn('SMTP not configured — skipping confirmation email');
-    return;
-  }
-
-  // Minimal SMTP client for Deno
-  const { SMTPClient } = await import('npm:emailjs@4');
-  const client = new SMTPClient({ user, password: pass, host, port, ssl: port === 465 });
-
   const itemsHtml = (order.items as any[])
-    .map((i) => `<tr><td>${i.name_snapshot}</td><td>×${i.quantity}</td><td>₩${(i.price_at_purchase * i.quantity).toLocaleString()}</td></tr>`)
+    .map(
+      (i) =>
+        `<tr>
+           <td style="padding:8px 0">${i.name_snapshot}</td>
+           <td style="padding:8px 0;text-align:right">×${i.quantity}</td>
+           <td style="padding:8px 0;text-align:right">₩${(i.price_at_purchase * i.quantity).toLocaleString('ko-KR')}</td>
+         </tr>`,
+    )
     .join('');
 
-  const html = `
-    <h2>Lumi Tea — Order ${order.order_no}</h2>
-    <p>Thank you for your order!</p>
-    <table>${itemsHtml}</table>
-    <p><b>Subtotal:</b> ₩${order.subtotal.toLocaleString()}<br>
-       <b>Shipping:</b> ₩${order.shipping.toLocaleString()}<br>
-       <b>Total:</b> ₩${order.total.toLocaleString()}</p>
-    <p>We'll notify you when your order ships.</p>
-  `;
+  const html = `<!doctype html>
+<html><body style="font-family:system-ui,-apple-system,sans-serif;background:#fafafa;padding:24px;color:#222">
+  <div style="max-width:560px;margin:auto;background:#fff;border-radius:14px;padding:28px;box-shadow:0 1px 4px rgba(0,0,0,.06)">
+    <h1 style="color:#E91E63;font-size:22px;margin:0 0 12px">Lumi Tea</h1>
+    <p style="margin:0 0 16px">Thank you for your order <strong>${order.order_no}</strong>!</p>
+    <table style="width:100%;border-collapse:collapse;font-size:14px">
+      <thead><tr style="border-bottom:1px solid #eee"><th align="left">Item</th><th align="right">Qty</th><th align="right">Total</th></tr></thead>
+      <tbody>${itemsHtml}</tbody>
+    </table>
+    <hr style="border:none;border-top:1px solid #eee;margin:16px 0">
+    <p style="margin:0;text-align:right;font-size:14px">
+      Subtotal: ₩${order.subtotal.toLocaleString('ko-KR')}<br>
+      Shipping: ₩${order.shipping.toLocaleString('ko-KR')}<br>
+      <strong style="font-size:16px;color:#E91E63">Total: ₩${order.total.toLocaleString('ko-KR')}</strong>
+    </p>
+    <p style="margin:24px 0 0;color:#666;font-size:13px">We'll email you again once your order ships.</p>
+  </div>
+</body></html>`;
 
-  await client.sendAsync({
-    from: from!,
+  const text = `Lumi Tea — Order ${order.order_no} confirmed. Total: ₩${order.total.toLocaleString('ko-KR')}.`;
+
+  await sendMail({
     to: order.user_email,
-    subject: `Lumi Tea — Order ${order.order_no} confirmed`,
-    attachment: [{ data: html, alternative: true }],
-    text: `Order ${order.order_no} confirmed. Total: ₩${order.total}.`,
+    subject: `Lumi Tea — Order ${order.order_no} confirmed ✓`,
+    text,
+    html,
   });
 }
 

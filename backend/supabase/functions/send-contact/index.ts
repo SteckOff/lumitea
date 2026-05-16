@@ -2,6 +2,7 @@
 // Public endpoint (no auth required), rate-limited by IP.
 
 import { handlePreflight, json } from '../_shared/cors.ts';
+import { sendMail } from '../_shared/mailer.ts';
 
 interface ContactBody {
   name: string;
@@ -51,32 +52,16 @@ Deno.serve(async (req) => {
   }
   if (body.message.length > 5000) return json({ error: 'too_long' }, 400);
 
-  const host = Deno.env.get('SMTP_HOST');
-  const port = Number(Deno.env.get('SMTP_PORT') ?? '465');
-  const user = Deno.env.get('SMTP_USER');
-  const pass = Deno.env.get('SMTP_PASS');
-  const to = Deno.env.get('CONTACT_TO') ?? user;
-  const from = Deno.env.get('MAIL_FROM') ?? user;
+  const to = Deno.env.get('CONTACT_TO') ?? Deno.env.get('SMTP_USER');
+  if (!to) return json({ error: 'smtp_not_configured' }, 500);
 
-  if (!host || !user || !pass || !to) {
-    return json({ error: 'smtp_not_configured' }, 500);
-  }
+  const res = await sendMail({
+    to,
+    replyTo: body.email,
+    subject: `Lumi Tea — contact from ${body.name}`,
+    text: `From: ${body.name} <${body.email}>\n\n${body.message}`,
+  });
 
-  const { SMTPClient } = await import('npm:emailjs@4');
-  const client = new SMTPClient({ user, password: pass, host, port, ssl: port === 465 });
-
-  try {
-    await client.sendAsync({
-      from: from!,
-      to: to!,
-      'reply-to': body.email,
-      subject: `Lumi Tea — contact from ${body.name}`,
-      text: `From: ${body.name} <${body.email}>\n\n${body.message}`,
-    });
-  } catch (e) {
-    console.error('smtp_failed', e);
-    return json({ error: 'send_failed' }, 502);
-  }
-
+  if (!res.ok) return json({ error: 'send_failed', detail: res.reason }, 502);
   return json({ ok: true });
 });

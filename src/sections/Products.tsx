@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { ShoppingCart, Star, Leaf, Coffee, Flower2, Sparkles } from 'lucide-react';
+import { ShoppingCart, Star, Leaf, Coffee, Flower2, Sparkles, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { products as initialProducts, categories } from '@/data/products';
 import { useProducts } from '@/hooks/useProducts';
+import { useWishlist } from '@/hooks/useWishlist';
 
 interface ProductsProps {
   addToCart: (product: { 
@@ -24,6 +25,7 @@ const Products = ({ addToCart, language }: ProductsProps) => {
 
   // Live products from Supabase — falls back to static data while loading
   const { products: dbProducts, loading: productsLoading } = useProducts();
+  const wishlist = useWishlist();
   const allProducts = productsLoading ? initialProducts : dbProducts;
   const [displayedProducts, setDisplayedProducts] = useState(allProducts);
 
@@ -215,10 +217,21 @@ const Products = ({ addToCart, language }: ProductsProps) => {
                     </Badge>
                   )}
                 </div>
-                <div className="absolute top-3 right-3">
+                <div className="absolute top-3 right-3 flex flex-col items-end gap-1.5">
                   <span className={`text-xs px-2 py-1 rounded-full font-medium ${isOutOfStock(product) ? 'bg-gray-200 text-gray-500' : 'bg-white/90 text-gray-800'}`}>
                     {product.weight}
                   </span>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); wishlist.toggle(product.id); }}
+                    aria-label={wishlist.has(product.id) ? 'Remove from wishlist' : 'Add to wishlist'}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center shadow-md transition-all ${
+                      wishlist.has(product.id)
+                        ? 'bg-pink-500 text-white scale-110'
+                        : 'bg-white/90 text-gray-700 hover:bg-white hover:scale-110'
+                    }`}
+                  >
+                    <Heart className={`w-4 h-4 ${wishlist.has(product.id) ? 'fill-current' : ''}`} />
+                  </button>
                 </div>
               </div>
 

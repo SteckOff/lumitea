@@ -3,7 +3,71 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Lumi Tea</title>
+    <meta name="theme-color" content="#E91E63" />
+
+    <title>Lumi Tea — Premium Korean Tea, Cherry-Blossom Inspired</title>
+    <meta name="description" content="Discover Lumi Tea — a Korean tea shop crafting premium oolong, black, green and wellness blends inspired by cherry blossoms. Free shipping over ₩50,000." />
+    <meta name="keywords" content="Korean tea, oolong, cherry blossom tea, gift sets, premium tea, lumi tea, 한국 차, 우롱차, 녹차" />
+    <link rel="canonical" href="https://lumitea.kr/" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Lumi Tea — Premium Korean Tea" />
+    <meta property="og:description" content="Premium Korean tea, cherry-blossom inspired. Oolong, black, green and wellness blends." />
+    <meta property="og:url" content="https://lumitea.kr/" />
+    <meta property="og:image" content="https://lumitea.kr/hero_tea.jpg" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:locale:alternate" content="ko_KR" />
+    <meta property="og:locale:alternate" content="ru_RU" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Lumi Tea — Premium Korean Tea" />
+    <meta name="twitter:description" content="Premium Korean tea, cherry-blossom inspired." />
+    <meta name="twitter:image" content="https://lumitea.kr/hero_tea.jpg" />
+
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <link rel="apple-touch-icon" href="/logo.png" />
+
+    <!-- Preconnect for faster loads -->
+    <link rel="preconnect" href="https://wewoixzvgcufopgjwpuk.supabase.co" crossorigin />
+    <link rel="preconnect" href="https://js.stripe.com" crossorigin />
+
+    <!-- JSON-LD: Organization -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Lumi Tea",
+      "url": "https://lumitea.kr/",
+      "logo": "https://lumitea.kr/logo.png",
+      "sameAs": [
+        "https://www.instagram.com/lumitea",
+        "https://www.facebook.com/lumitea"
+      ],
+      "address": {
+        "@type": "PostalAddress",
+        "addressCountry": "KR",
+        "addressLocality": "Incheon",
+        "addressRegion": "Yeonsu-gu"
+      }
+    }
+    </script>
+
+    <!-- JSON-LD: WebSite + SearchAction -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Lumi Tea",
+      "url": "https://lumitea.kr/",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://lumitea.kr/?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>
