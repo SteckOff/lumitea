@@ -4,4 +4,6 @@ node_modules/
 .env.*.local
 backend/supabase/.temp/
 backend/supabase/.branches/
+supabase/.temp/
+supabase/.branches/
 .DS_Store
