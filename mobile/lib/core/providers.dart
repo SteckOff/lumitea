@@ -265,6 +265,25 @@ final allOrdersProvider = FutureProvider.autoDispose<List<Order>>((ref) async {
 });
 
 // -----------------------------------------------------------------------------
+// Admin — products & gift sets (includes inactive)
+// -----------------------------------------------------------------------------
+final adminProductsProvider = FutureProvider.autoDispose<List<Product>>((ref) async {
+  final auth = ref.watch(authProvider);
+  if (!auth.isAdmin) return [];
+  final s = ref.read(supabaseProvider);
+  final data = await s.from('products').select().order('id');
+  return (data as List).map((j) => Product.fromJson(j as Map<String, dynamic>)).toList();
+});
+
+final adminGiftSetsProvider = FutureProvider.autoDispose<List<GiftSet>>((ref) async {
+  final auth = ref.watch(authProvider);
+  if (!auth.isAdmin) return [];
+  final s = ref.read(supabaseProvider);
+  final data = await s.from('gift_sets').select().order('id');
+  return (data as List).map((j) => GiftSet.fromJson(j as Map<String, dynamic>)).toList();
+});
+
+// -----------------------------------------------------------------------------
 // Promotions (live feed)
 // -----------------------------------------------------------------------------
 final promotionsProvider = FutureProvider.autoDispose<List<Promotion>>((ref) async {

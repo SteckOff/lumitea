@@ -7,3 +7,5 @@ backend/supabase/.branches/
 supabase/.temp/
 supabase/.branches/
 .DS_Store
+dist-bins/
+mobile/build/
