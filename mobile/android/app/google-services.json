@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "163283394683",
+    "project_id": "lumitea-87e82",
+    "storage_bucket": "lumitea-87e82.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:163283394683:android:a6fc87bb6104de9a6542de",
+        "android_client_info": {
+          "package_name": "kr.lumitea"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDGhoXnSUrx7sDLRcZE9dgxVsOUUUlcKAk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

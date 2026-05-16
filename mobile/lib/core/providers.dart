@@ -248,7 +248,7 @@ final myOrdersProvider = FutureProvider.autoDispose<List<Order>>((ref) async {
 final orderByIdProvider = FutureProvider.autoDispose.family<Order?, String>((ref, id) async {
   final s = ref.read(supabaseProvider);
   final data = await s.from('orders').select().eq('id', id).maybeSingle();
-  return data == null ? null : Order.fromJson(data as Map<String, dynamic>);
+  return data == null ? null : Order.fromJson(data);
 });
 
 // All orders — admin only
