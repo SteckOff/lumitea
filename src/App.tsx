@@ -352,12 +352,12 @@ function AppContent() {
   // Home page
   return (
     <div className="min-h-screen bg-cream">
-      {/* Free-shipping progress banner (scrolls with page) */}
-      <FreeShippingBanner cartSubtotal={cartTotal} language={language} />
       {/* Navigation */}
       <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled ? 'glass shadow-lg' : 'bg-transparent'
+        scrolled ? 'shadow-lg' : ''
       }`}>
+        <FreeShippingBanner cartSubtotal={cartTotal} language={language} />
+        <div className={`transition-all duration-300 ${scrolled ? 'glass' : 'bg-white/80 backdrop-blur-sm'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 lg:h-20">
             {/* Logo */}
@@ -568,6 +568,7 @@ function AppContent() {
               </Button>
             </div>
           </div>
+        </div>
         </div>
       </nav>
 
