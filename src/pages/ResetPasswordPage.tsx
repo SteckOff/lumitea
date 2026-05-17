@@ -20,23 +20,36 @@ export function ResetPasswordPage({ language = 'en' as 'en' | 'ko' | 'ru' }) {
   const { updatePassword } = useAuth();
 
   useEffect(() => {
-    // wait for SDK to consume the hash and set a session
+    // Supabase fires PASSWORD_RECOVERY when the hash token is consumed
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
+        setReady(true);
+      }
+    });
+    // Also check if session already exists (page refresh scenario)
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) setReady(true);
-      else setError(
-        language === 'ko' ? '잘못되었거나 만료된 링크입니다.' :
-        language === 'ru' ? 'Ссылка некорректна или истекла.' :
-        'Invalid or expired link.',
-      );
     });
+    // Timeout: if no session after 4s, show error
+    const timer = setTimeout(() => {
+      setReady(prev => {
+        if (!prev) setError(
+          language === 'ko' ? '잘못되었거나 만료된 링크입니다.' :
+          language === 'ru' ? 'Ссылка некорректна или истекла.' :
+          'Invalid or expired link.',
+        );
+        return prev;
+      });
+    }, 4000);
+    return () => { subscription.unsubscribe(); clearTimeout(timer); };
   }, [language]);
 
   const handleSubmit = async () => {
-    if (pw.length < 6) {
+    if (pw.length < 8 || !/[A-Z]/.test(pw) || !/[a-z]/.test(pw)) {
       setError(
-        language === 'ko' ? '비밀번호는 최소 6자 이상이어야 합니다' :
-        language === 'ru' ? 'Пароль должен быть не менее 6 символов' :
-        'Password must be at least 6 characters',
+        language === 'ko' ? '비밀번호는 8자 이상, 대문자 및 소문자를 포함해야 합니다' :
+        language === 'ru' ? 'Пароль: минимум 8 символов, заглавная и строчная буква' :
+        'Password must be 8+ characters with uppercase and lowercase letters',
       );
       return;
     }
